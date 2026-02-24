@@ -1,0 +1,28 @@
+{
+  "name": "e2ee-chat-app",
+  "version": "1.0.0",
+  "description": "> **Project Goal:** Build a mobile chat application where messages are encrypted **before** leaving the device. The server stores only ciphertext and cannot read user messages. > > **Course:** Introduction to Cybersecurity | **Timeline:** 9 Weeks | **Team:** 6 Students",
+  "main": "App.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/stephkmn/e2ee-chat-app.git"
+  },
+  "dependencies": {
+    "expo": "~51.0.0",
+    "react": "18.2.0",
+    "react-native": "0.74.5",
+    "firebase": "^10.12.0",
+    "crypto-js": "^4.2.0"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/stephkmn/e2ee-chat-app/issues"
+  },
+  "homepage": "https://github.com/stephkmn/e2ee-chat-app#readme"
+}
