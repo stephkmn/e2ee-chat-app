@@ -1,4 +1,4 @@
-# 🔐 Secure Chat - End-to-End Encrypted Mobile Messaging
+# 🔐 E2EE Chat App - End-to-End Encrypted Mobile Messaging
 
 > **Project Goal:** Build a mobile chat application where messages are encrypted **before** leaving the device. The server stores only ciphertext and cannot read user messages.
 >
