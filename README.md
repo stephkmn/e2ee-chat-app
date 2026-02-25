@@ -159,7 +159,7 @@ secure-chat-app/
 | :--- | :--- | :--- | :--- |
 | Pair 1 | Auth & Nav | Login, Register, Navigation Stack | [Name], [Name] |
 | Pair 2 | Chat UI | Chat List, Chat Room, Styling | Nathan Fender, [Name] |
-| Pair 3 | Security & Infra | Encryption, Firebase Config, Rules | [Name], [Name] |
+| Pair 3 | Security & Infra | Encryption, Firebase Config, Rules | Aranzazu Romero, [Name] |
 
 ## 🐛 Troubleshooting
 | Issue | Solution |
