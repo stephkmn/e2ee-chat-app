@@ -11,11 +11,11 @@
     "url": "git+https://github.com/stephkmn/e2ee-chat-app.git"
   },
   "dependencies": {
-    "expo": "~51.0.0",
-    "react": "18.2.0",
-    "react-native": "0.74.5",
-    "firebase": "^10.12.0",
-    "crypto-js": "^4.2.0"
+    "expo": "53.0.0",
+    "react": "19.0.0",
+    "react-native": "0.79.0",
+    "firebase": ">=10.12.0",
+    "crypto-js": ">=4.2.0"
   },
   "keywords": [],
   "author": "",
