@@ -157,9 +157,9 @@ secure-chat-app/
 ## 👥 Team Roles
 | Pair | Role | Focus Area | Members |
 | :--- | :--- | :--- | :--- |
-| Pair 1 | Auth & Nav | Login, Register, Navigation Stack | [Name], [Name] |
+| Pair 1 | Auth & Nav | Login, Register, Navigation Stack | Joshua Trinh, [Name] |
 | Pair 2 | Chat UI | Chat List, Chat Room, Styling | Nathan Fender, [Name] |
-| Pair 3 | Security & Infra | Encryption, Firebase Config, Rules | Aranzazu Romero, [Name] |
+| Pair 3 | Security & Infra | Encryption, Firebase Config, Rules | Aranzazu Romero, Stephanie Noe |
 
 ## 🐛 Troubleshooting
 | Issue | Solution |
