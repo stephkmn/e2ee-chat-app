@@ -11,6 +11,7 @@
     "url": "git+https://github.com/stephkmn/e2ee-chat-app.git"
   },
   "dependencies": {
+    "@noble/ciphers": "^2.1.1",
     "@react-navigation/native": "^7.1.33",
     "@react-navigation/native-stack": "^7.14.4",
     "crypto-js": "^4.2.0",
