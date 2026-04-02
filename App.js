@@ -1,23 +1,9 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import LoginScreen from './screens/LoginScreen';
+// import RegisterScreen from './screens/RegisterScreen';
 
 export default function App() {
-  return (
-    <View style={styles.container}>
-      <Text style={styles.text}>Welcome to E2EE Chat App</Text>
-    </View>
-  );
+  // For Issue #3, we are simply rendering the UI directly.
+  // We will add the navigation stack in Issue #4.
+  return <LoginScreen />;
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  text: {
-    fontSize: 20,
-    fontWeight: 'bold',
-  },
-});

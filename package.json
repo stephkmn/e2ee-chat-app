@@ -2,7 +2,7 @@
   "name": "e2ee-chat-app",
   "version": "1.0.0",
   "description": "> **Project Goal:** Build a mobile chat application where messages are encrypted **before** leaving the device. The server stores only ciphertext and cannot read user messages. > > **Course:** Introduction to Cybersecurity | **Timeline:** 9 Weeks | **Team:** 6 Students",
-  "main": "App.js",
+  "main": "node_modules/expo/AppEntry.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },

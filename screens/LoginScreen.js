@@ -1,0 +1,94 @@
+import React, { useState } from 'react';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, SafeAreaView } from 'react-native';
+
+export default function LoginScreen() {
+  // These state variables temporarily hold the text the user types into the inputs
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <View style={styles.formContainer}>
+        <Text style={styles.title}>E2EE Chat App</Text>
+
+        {/* Email Input Field */}
+        <TextInput
+          style={styles.input}
+          placeholder="Email Address"
+          value={email}
+          onChangeText={setEmail}
+          keyboardType="email-address"
+          autoCapitalize="none" // Prevents phones from capitalizing the first letter of an email
+        />
+
+        {/* Password Input Field */}
+        <TextInput
+          style={styles.input}
+          placeholder="Password"
+          value={password}
+          onChangeText={setPassword}
+          secureTextEntry={true} // Replaces typed characters with dots for security
+        />
+
+        {/* Login Button (UI Only - No Firebase logic yet) */}
+        <TouchableOpacity style={styles.button} onPress={() => console.log('Login Button Pressed')}>
+          <Text style={styles.buttonText}>Login</Text>
+        </TouchableOpacity>
+
+        {/* Navigation Link to Register Screen */}
+        <TouchableOpacity style={styles.linkContainer}>
+          <Text style={styles.linkText}>Don't have an account? Register here.</Text>
+        </TouchableOpacity>
+      </View>
+    </SafeAreaView>
+  );
+}
+
+// This section handles all the visual styling (colors, padding, fonts)
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#f4f4f9',
+    justifyContent: 'center',
+  },
+  formContainer: {
+    paddingHorizontal: 30,
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#333',
+    textAlign: 'center',
+    marginBottom: 40,
+  },
+  input: {
+    backgroundColor: '#fff',
+    paddingVertical: 15,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    marginBottom: 15,
+    fontSize: 16,
+  },
+  button: {
+    backgroundColor: '#007AFF',
+    paddingVertical: 15,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginTop: 10,
+  },
+  buttonText: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  linkContainer: {
+    marginTop: 20,
+    alignItems: 'center',
+  },
+  linkText: {
+    color: '#007AFF',
+    fontSize: 14,
+  },
+});
