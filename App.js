@@ -1,9 +1,27 @@
 import React from 'react';
+import { NavigationContainer } from '@react-navigation/native';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
+
 import LoginScreen from './screens/LoginScreen';
-// import RegisterScreen from './screens/RegisterScreen';
+import RegisterScreen from './screens/RegisterScreen';
+
+const Stack = createNativeStackNavigator();
 
 export default function App() {
-  // For Issue #3, we are simply rendering the UI directly.
-  // We will add the navigation stack in Issue #4.
-  return <LoginScreen />;
+  return (
+    <NavigationContainer>
+      <Stack.Navigator initialRouteName="Login">
+        <Stack.Screen 
+          name="Login" 
+          component={LoginScreen} 
+          options={{ headerShown: false }} 
+        />
+        <Stack.Screen 
+          name="Register" 
+          component={RegisterScreen} 
+          options={{ headerShown: false }} 
+        />
+      </Stack.Navigator>
+    </NavigationContainer>
+  );
 }
