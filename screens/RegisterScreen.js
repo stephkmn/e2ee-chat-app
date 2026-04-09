@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, SafeAreaView } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
-export default function RegisterScreen() {
+export default function RegisterScreen({ navigation }) {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -54,8 +55,8 @@ export default function RegisterScreen() {
         </TouchableOpacity>
 
         {/* Link back to Login */}
-        <TouchableOpacity style={styles.linkContainer}>
-          <Text style={styles.linkText}>Already have an account? Login here.</Text>
+        <TouchableOpacity style={styles.linkContainer} onPress={() => navigation.navigate('Login')}>
+            <Text style={styles.linkText}>Already have an account? Login here.</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>

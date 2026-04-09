@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, SafeAreaView } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
-export default function LoginScreen() {
+export default function LoginScreen({ navigation }) {
   // These state variables temporarily hold the text the user types into the inputs
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -36,8 +37,8 @@ export default function LoginScreen() {
         </TouchableOpacity>
 
         {/* Navigation Link to Register Screen */}
-        <TouchableOpacity style={styles.linkContainer}>
-          <Text style={styles.linkText}>Don't have an account? Register here.</Text>
+        <TouchableOpacity style={styles.linkContainer} onPress={() => navigation.navigate('Register')}>
+            <Text style={styles.linkText}>Don't have an account? Register here.</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>
