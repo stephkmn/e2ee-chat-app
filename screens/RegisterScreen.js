@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { registerUser } from '../services/auth';
 
 export default function RegisterScreen({ navigation }) {
   const [name, setName] = useState('');
@@ -17,6 +18,7 @@ export default function RegisterScreen({ navigation }) {
         <TextInput
           style={styles.input}
           placeholder="Full Name"
+          placeholderTextColor="#667"
           value={name}
           onChangeText={setName}
         />
@@ -25,6 +27,7 @@ export default function RegisterScreen({ navigation }) {
         <TextInput
           style={styles.input}
           placeholder="Email Address"
+          placeholderTextColor="#667"
           value={email}
           onChangeText={setEmail}
           keyboardType="email-address"
@@ -35,6 +38,7 @@ export default function RegisterScreen({ navigation }) {
         <TextInput
           style={styles.input}
           placeholder="Password"
+          placeholderTextColor="#667"
           value={password}
           onChangeText={setPassword}
           secureTextEntry={true} 
@@ -44,13 +48,29 @@ export default function RegisterScreen({ navigation }) {
         <TextInput
           style={styles.input}
           placeholder="Confirm Password"
+          placeholderTextColor="#667"
           value={confirmPassword}
           onChangeText={setConfirmPassword}
           secureTextEntry={true} 
         />
 
         {/* Register Button */}
-        <TouchableOpacity style={styles.button} onPress={() => console.log('Register Button Pressed')}>
+        <TouchableOpacity 
+          style={styles.button} 
+          onPress={async () => {
+            if (password !== confirmPassword) {
+              Alert.alert("Error", "Passwords do not match!");
+              return;
+            }
+            const { user, error } = await registerUser(email, password);
+            if (error) {
+              Alert.alert("Registration Failed", error);
+            } else {
+              Alert.alert("Success!", "Account created successfully.");
+              // Usually we navigate to the Chat room here, but for now just clear or let the state update
+            }
+          }}
+        >
           <Text style={styles.buttonText}>Register</Text>
         </TouchableOpacity>
 

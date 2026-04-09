@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { loginUser } from '../services/auth';
 
 export default function LoginScreen({ navigation }) {
   // These state variables temporarily hold the text the user types into the inputs
@@ -16,6 +17,7 @@ export default function LoginScreen({ navigation }) {
         <TextInput
           style={styles.input}
           placeholder="Email Address"
+          placeholderTextColor="#667"
           value={email}
           onChangeText={setEmail}
           keyboardType="email-address"
@@ -26,13 +28,28 @@ export default function LoginScreen({ navigation }) {
         <TextInput
           style={styles.input}
           placeholder="Password"
+          placeholderTextColor="#667"
           value={password}
           onChangeText={setPassword}
           secureTextEntry={true} // Replaces typed characters with dots for security
         />
 
-        {/* Login Button (UI Only - No Firebase logic yet) */}
-        <TouchableOpacity style={styles.button} onPress={() => console.log('Login Button Pressed')}>
+        {/* Login Button */}
+        <TouchableOpacity 
+          style={styles.button} 
+          onPress={async () => {
+            if (!email || !password) {
+              Alert.alert("Error", "Please fill in all fields.");
+              return;
+            }
+            const { user, error } = await loginUser(email, password);
+            if (error) {
+              Alert.alert("Login Failed", error);
+            } else {
+              Alert.alert("Success!", "You are logged in.");
+            }
+          }}
+        >
           <Text style={styles.buttonText}>Login</Text>
         </TouchableOpacity>
 
