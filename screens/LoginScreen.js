@@ -46,7 +46,7 @@ export default function LoginScreen({ navigation }) {
             if (error) {
               Alert.alert("Login Failed", error);
             } else {
-              Alert.alert("Success!", "You are logged in.");
+              navigation.navigate('Chats');
             }
           }}
         >
