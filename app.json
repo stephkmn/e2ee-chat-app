@@ -1,5 +1,21 @@
 {
-  "plugins": [
-    "expo-secure-store"
-  ]
+  "expo": {
+    "name": "e2ee-chat-app",
+    "slug": "e2ee-chat-app",
+    "plugins": [
+      "expo-secure-store",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow E2EE Chat App to scan QR codes for secure key exchange."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow E2EE Chat App to choose QR code photos for secure key exchange."
+        }
+      ]
+    ]
+  }
 }

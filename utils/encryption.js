@@ -1,20 +1,17 @@
 const { gcm } = require("@noble/ciphers/aes.js");
+const Crypto = require("expo-crypto");
 
 const KEY_LENGTH_BYTES = 32; // 256 bits
 const NONCE_LENGTH_BYTES = 12; // AES-GCM recommended 96-bit nonce
 
 function getTextEncoder() {
     if (typeof TextEncoder !== "undefined") return new TextEncoder();
-    // Node fallback
-    // eslint-disable-next-line global-require
-    return new (require("util").TextEncoder)();
+    throw new Error("TextEncoder is not available in this environment");
 }
 
 function getTextDecoder() {
     if (typeof TextDecoder !== "undefined") return new TextDecoder();
-    // Node fallback
-    // eslint-disable-next-line global-require
-    return new (require("util").TextDecoder)();
+    throw new Error("TextDecoder is not available in this environment");
 }
 
 function bytesToHex(bytes) {
@@ -59,7 +56,10 @@ function base64ToBytes(base64) {
 }
 
 function randomBytes(length) {
-    // RN/Browser
+    if (Crypto && typeof Crypto.getRandomBytes === "function") {
+        return Crypto.getRandomBytes(length);
+    }
+
     if (
         typeof globalThis !== "undefined" &&
         globalThis.crypto &&
@@ -70,10 +70,7 @@ function randomBytes(length) {
         return out;
     }
 
-    // Node fallback (for unit tests)
-    // eslint-disable-next-line global-require
-    const nodeCrypto = require("crypto");
-    return new Uint8Array(nodeCrypto.randomBytes(length));
+    throw new Error("Secure random values are not available in this environment");
 }
 
 function parseKeyMaterial(encoded, expectedBytes) {
