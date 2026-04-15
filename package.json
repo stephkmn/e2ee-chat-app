@@ -2,7 +2,7 @@
   "name": "e2ee-chat-app",
   "version": "1.0.0",
   "description": "> **Project Goal:** Build a mobile chat application where messages are encrypted **before** leaving the device. The server stores only ciphertext and cannot read user messages. > > **Course:** Introduction to Cybersecurity | **Timeline:** 9 Weeks | **Team:** 6 Students",
-  "main": "App.js",
+  "main": "node_modules/expo/AppEntry.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -12,14 +12,20 @@
   },
   "dependencies": {
     "@noble/ciphers": "^2.1.1",
+    "@react-native-async-storage/async-storage": "2.2.0",
     "@react-navigation/native": "^7.1.33",
     "@react-navigation/native-stack": "^7.14.4",
     "crypto-js": "^4.2.0",
     "expo": "^54.0.33",
+    "expo-camera": "~17.0.10",
+    "expo-crypto": "~15.0.8",
+    "expo-image-picker": "~17.0.10",
     "expo-secure-store": "~15.0.8",
-    "firebase": "^12.10.0",
+    "firebase": "^12.11.0",
+    "firebase-tools": "^15.13.0",
     "react": "19.1.0",
     "react-native": "0.81.5",
+    "react-native-qrcode-svg": "^6.3.21",
     "react-native-safe-area-context": "~5.6.0",
     "react-native-screens": "~4.16.0"
   },
