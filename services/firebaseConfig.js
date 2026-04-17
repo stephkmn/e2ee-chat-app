@@ -1,5 +1,10 @@
-import { initializeApp } from 'firebase/app';
-import { initializeAuth, getReactNativePersistence } from 'firebase/auth';
+import { getApp, getApps, initializeApp } from 'firebase/app';
+import {
+  getAuth,
+  initializeAuth,
+  getReactNativePersistence,
+} from 'firebase/auth';
+import { getFirestore } from 'firebase/firestore';
 import ReactNativeAsyncStorage from '@react-native-async-storage/async-storage';
 
 const firebaseConfig = {
@@ -11,9 +16,14 @@ const firebaseConfig = {
   appId: process.env.EXPO_PUBLIC_FIREBASE_IOS_APP_ID 
 };
 
-const app = initializeApp(firebaseConfig);
+const hasExistingApp = getApps().length > 0;
+const app = hasExistingApp ? getApp() : initializeApp(firebaseConfig);
 
 // This tells Firebase to "remember" the user even if the app closes
-export const auth = initializeAuth(app, {
-  persistence: getReactNativePersistence(ReactNativeAsyncStorage)
-});
+export const auth = hasExistingApp
+  ? getAuth(app)
+  : initializeAuth(app, {
+      persistence: getReactNativePersistence(ReactNativeAsyncStorage)
+    });
+
+export const db = getFirestore(app);

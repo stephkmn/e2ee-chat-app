@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useMemo, useState } from 'react';
+import React, { createContext, useCallback, useContext, useMemo, useState } from 'react';
 import * as Crypto from 'expo-crypto';
 
 import { deleteChatKey, saveChatKey } from '../utils/storage';
@@ -98,7 +98,7 @@ async function generateChatId() {
 export function ChatProvider({ children }) {
   const [chats, setChats] = useState(initialChats);
 
-  const upsertChat = (chat) => {
+  const upsertChat = useCallback((chat) => {
     setChats((currentChats) => {
       const existingIndex = currentChats.findIndex((item) => item.id === chat.id);
 
@@ -114,7 +114,7 @@ export function ChatProvider({ children }) {
 
       return updatedChats;
     });
-  };
+  }, []);
 
   const createChatHandshake = async (replaceChatId) => {
     let chatId;
@@ -162,12 +162,43 @@ export function ChatProvider({ children }) {
 
   const getChatById = (chatId) => chats.find((chat) => chat.id === chatId) || null;
 
+  const updateChatPreview = useCallback((chatId, lastMessage, time = formatTimestamp()) => {
+    if (!chatId || !lastMessage) {
+      return;
+    }
+
+    setChats((currentChats) => {
+      const existingIndex = currentChats.findIndex((chat) => chat.id === chatId);
+      const existingChat = existingIndex >= 0 ? currentChats[existingIndex] : null;
+      const nextChat = buildChatRecord(chatId, {
+        ...(existingChat || {}),
+        lastMessage,
+        time,
+        unread: 0,
+        hasStoredKey: existingChat?.hasStoredKey ?? true,
+      });
+
+      if (existingIndex === -1) {
+        return [nextChat, ...currentChats];
+      }
+
+      const updatedChats = currentChats.filter((chat) => chat.id !== chatId);
+      updatedChats.unshift({
+        ...currentChats[existingIndex],
+        ...nextChat,
+      });
+
+      return updatedChats;
+    });
+  }, []);
+
   const value = useMemo(
     () => ({
       chats,
       createChatHandshake,
       addScannedChat,
       getChatById,
+      updateChatPreview,
     }),
     [chats]
   );
