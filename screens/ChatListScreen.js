@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
-import { Alert } from 'react-native';
+import React, { useRef, useState } from 'react';
+import { ActivityIndicator, Alert } from 'react-native';
 import {
+  Animated,
+  Easing,
   FlatList,
   Pressable,
   StyleSheet,
@@ -14,9 +16,21 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useChatContext } from '../context/ChatContext';
 
 export default function ChatListScreen({ navigation }) {
-  const { chats, createChatHandshake } = useChatContext();
+  const {
+    chats,
+    createChatHandshake,
+    isChatsLoading,
+    chatError,
+    hideChat,
+    renameChat,
+  } = useChatContext();
+  const containerRef = useRef(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [deleteMenu, setDeleteMenu] = useState(null);
+  const [editingChatId, setEditingChatId] = useState(null);
+  const [editingName, setEditingName] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const deleteMenuAnimation = useRef(new Animated.Value(0)).current;
 
   const filteredChats = chats.filter((chat) =>
     chat.name.toLowerCase().includes(searchQuery.trim().toLowerCase())
@@ -41,18 +55,131 @@ export default function ChatListScreen({ navigation }) {
     navigation.navigate('QRCodeScanner');
   };
 
+  const handleRenameCancel = () => {
+    setEditingChatId(null);
+    setEditingName('');
+  };
+
+  const closeOverlays = () => {
+    setIsMenuOpen(false);
+    setDeleteMenu(null);
+    handleRenameCancel();
+    deleteMenuAnimation.setValue(0);
+  };
+
   const openChat = (chatId) => {
+    if (editingChatId) {
+      return;
+    }
+
     navigation.navigate('Chat', { chatId });
+  };
+
+  const handleDeleteMenuOpen = (chat, event) => {
+    if (editingChatId) {
+      return;
+    }
+
+    setIsMenuOpen(false);
+    deleteMenuAnimation.setValue(0);
+
+    const pressX = event?.nativeEvent?.pageX ?? 0;
+    const pressY = event?.nativeEvent?.pageY ?? 0;
+
+    containerRef.current?.measureInWindow((containerX, containerY, containerWidth) => {
+      const menuWidth = 110;
+      const screenPadding = 12;
+      const localPressX = pressX - containerX;
+      const localPressY = pressY - containerY;
+      const nextLeft = Math.max(
+        screenPadding,
+        Math.min(localPressX - menuWidth / 2, containerWidth - menuWidth - screenPadding)
+      );
+
+      setDeleteMenu({
+        chatId: chat.id,
+        chatName: chat.name,
+        x: nextLeft,
+        y: localPressY + 10,
+      });
+
+      Animated.timing(deleteMenuAnimation, {
+        toValue: 1,
+        duration: 160,
+        easing: Easing.out(Easing.ease),
+        useNativeDriver: true,
+      }).start();
+    });
+  };
+
+  const handleDeleteChat = async () => {
+    if (!deleteMenu?.chatId) {
+      return;
+    }
+
+    try {
+      await hideChat(deleteMenu.chatId);
+      closeOverlays();
+    } catch (error) {
+      Alert.alert(
+        'Unable to delete chat',
+        error?.message || 'Please try again to update your chat list.'
+      );
+    }
+  };
+
+  const handleRenameMode = () => {
+    if (!deleteMenu) {
+      return;
+    }
+
+    setEditingChatId(deleteMenu.chatId);
+    setEditingName(deleteMenu.chatName);
+    setDeleteMenu(null);
+    deleteMenuAnimation.setValue(0);
+  };
+
+  const handleRenameSubmit = async () => {
+    if (!editingChatId) {
+      return;
+    }
+
+    try {
+      await renameChat(editingChatId, editingName);
+      handleRenameCancel();
+    } catch (error) {
+      Alert.alert(
+        'Unable to rename chat',
+        error?.message || 'Please try again to update the chat name.'
+      );
+    }
   };
 
   const renderChatItem = ({ item }) => (
     <TouchableOpacity
-      style={styles.chatRow}
+      style={[styles.chatRow, editingChatId === item.id && styles.chatRowEditing]}
       activeOpacity={0.8}
       onPress={() => openChat(item.id)}
+      onLongPress={(event) => handleDeleteMenuOpen(item, event)}
+      disabled={Boolean(editingChatId)}
     >
       <View style={styles.chatMeta}>
-        <Text style={styles.chatName}>{item.name}</Text>
+        {editingChatId === item.id ? (
+          <TextInput
+            style={styles.chatNameInput}
+            value={editingName}
+            onChangeText={setEditingName}
+            autoFocus
+            returnKeyType="done"
+            onSubmitEditing={handleRenameSubmit}
+            onBlur={handleRenameCancel}
+            blurOnSubmit={false}
+            placeholder="Chat name"
+            placeholderTextColor="#94a3b8"
+          />
+        ) : (
+          <Text style={styles.chatName}>{item.name}</Text>
+        )}
         <Text style={styles.chatTime}>{item.time}</Text>
       </View>
       <View style={styles.chatPreviewRow}>
@@ -72,59 +199,126 @@ export default function ChatListScreen({ navigation }) {
 
   return (
     <SafeAreaView style={styles.container} edges={['left', 'right', 'bottom']}>
-      {isMenuOpen ? <Pressable style={styles.backdrop} onPress={() => setIsMenuOpen(false)} /> : null}
-
-      {isMenuOpen ? (
-        <View style={styles.menu}>
-          <TouchableOpacity
-            style={styles.menuItem}
-            onPress={handleCreateChat}
-            activeOpacity={0.85}
-          >
-            <Text style={styles.menuItemText}>Add Contact</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.menuItem}
-            onPress={handleJoinChat}
-            activeOpacity={0.85}
-          >
-            <Text style={styles.menuItemText}>Scan</Text>
-          </TouchableOpacity>
-        </View>
-      ) : null}
-
-      <View style={styles.searchWrapper}>
-        <View style={styles.searchInputWrapper}>
-          <Text style={styles.searchIcon}>⌕</Text>
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Search"
-            placeholderTextColor="#94a3b8"
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            autoCapitalize="none"
-            autoCorrect={false}
-            clearButtonMode="while-editing"
+      <View ref={containerRef} style={styles.content}>
+        {isMenuOpen || deleteMenu || editingChatId ? (
+          <Pressable
+            style={styles.backdrop}
+            onPress={editingChatId ? handleRenameCancel : closeOverlays}
           />
+        ) : null}
+
+        {isMenuOpen ? (
+          <View style={styles.menu}>
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={handleCreateChat}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.menuItemText}>New Chat</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={handleJoinChat}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.menuItemText}>Scan</Text>
+            </TouchableOpacity>
+          </View>
+        ) : null}
+
+        {deleteMenu ? (
+          <Animated.View
+            style={[
+              styles.deleteMenu,
+              {
+                top: deleteMenu.y,
+                left: deleteMenu.x,
+                opacity: deleteMenuAnimation,
+                transform: [
+                  {
+                    translateY: deleteMenuAnimation.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [-12, 0],
+                    }),
+                  },
+                  {
+                    scaleY: deleteMenuAnimation.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0.88, 1],
+                    }),
+                  },
+                ],
+              },
+            ]}
+          >
+            <TouchableOpacity
+              style={styles.menuActionButton}
+              onPress={handleRenameMode}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.renameMenuText}>Rename</Text>
+            </TouchableOpacity>
+            <View style={styles.menuDivider} />
+            <TouchableOpacity
+              style={styles.menuActionButton}
+              onPress={handleDeleteChat}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.deleteMenuText}>Delete</Text>
+            </TouchableOpacity>
+          </Animated.View>
+        ) : null}
+
+        <View style={styles.searchWrapper}>
+          <View style={styles.searchInputWrapper}>
+            <Text style={styles.searchIcon}>⌕</Text>
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search"
+              placeholderTextColor="#94a3b8"
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              autoCapitalize="none"
+              autoCorrect={false}
+              clearButtonMode="while-editing"
+            />
+          </View>
         </View>
+
+        <FlatList
+          data={filteredChats}
+          keyExtractor={(item) => item.id}
+          renderItem={renderChatItem}
+          contentContainerStyle={styles.chatList}
+          showsVerticalScrollIndicator={false}
+          ListEmptyComponent={
+            isChatsLoading ? (
+              <View style={styles.emptyState}>
+                <ActivityIndicator size="large" color="#007aff" />
+                <Text style={styles.emptyText}>Loading your secure chats...</Text>
+              </View>
+            ) : (
+              <View style={styles.emptyState}>
+                <Text style={styles.emptyTitle}>
+                  {chatError ? 'Unable to load chats' : 'No chats yet'}
+                </Text>
+                <Text style={styles.emptyText}>
+                  {chatError || 'Create or scan a secure handshake to start chatting.'}
+                </Text>
+              </View>
+            )
+          }
+        />
+
+        <TouchableOpacity
+          style={styles.addButton}
+          onPress={() => setIsMenuOpen((open) => !open)}
+          activeOpacity={0.9}
+        >
+          <Text style={styles.addButtonText}>+</Text>
+        </TouchableOpacity>
       </View>
-
-      <FlatList
-        data={filteredChats}
-        keyExtractor={(item) => item.id}
-        renderItem={renderChatItem}
-        contentContainerStyle={styles.chatList}
-        showsVerticalScrollIndicator={false}
-      />
-
-      <TouchableOpacity
-        style={styles.addButton}
-        onPress={() => setIsMenuOpen((open) => !open)}
-        activeOpacity={0.9}
-      >
-        <Text style={styles.addButtonText}>+</Text>
-      </TouchableOpacity>
     </SafeAreaView>
   );
 }
@@ -133,6 +327,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f1f3f8',
+  },
+  content: {
+    flex: 1,
   },
   backdrop: {
     ...StyleSheet.absoluteFillObject,
@@ -185,6 +382,37 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '600',
   },
+  deleteMenu: {
+    position: 'absolute',
+    width: 110,
+    backgroundColor: '#ffffff',
+    borderRadius: 14,
+    shadowColor: '#000',
+    shadowOpacity: 0.14,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 10,
+    zIndex: 4,
+  },
+  menuActionButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  menuDivider: {
+    height: 1,
+    backgroundColor: '#e2e8f0',
+  },
+  renameMenuText: {
+    color: '#0f172a',
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  deleteMenuText: {
+    color: '#dc2626',
+    fontSize: 15,
+    fontWeight: '700',
+  },
   searchWrapper: {
     paddingHorizontal: 16,
     paddingBottom: 8,
@@ -220,6 +448,26 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 4,
     paddingBottom: 110,
+    flexGrow: 1,
+  },
+  emptyState: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+    paddingTop: 80,
+  },
+  emptyTitle: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#0f172a',
+    textAlign: 'center',
+  },
+  emptyText: {
+    marginTop: 12,
+    fontSize: 15,
+    lineHeight: 22,
+    color: '#64748b',
+    textAlign: 'center',
   },
   chatRow: {
     backgroundColor: '#fff',
@@ -232,6 +480,10 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 5 },
     elevation: 2,
   },
+  chatRowEditing: {
+    position: 'relative',
+    zIndex: 2,
+  },
   chatMeta: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -239,6 +491,16 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   chatName: {
+    flex: 1,
+    marginRight: 10,
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#111827',
+  },
+  chatNameInput: {
+    flex: 1,
+    marginRight: 10,
+    paddingVertical: 0,
     fontSize: 18,
     fontWeight: '700',
     color: '#111827',
@@ -257,23 +519,23 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-start',
   },
   chatPreview: {
-    color: '#1f2937',
-    fontSize: 15,
+    color: '#334155',
+    fontSize: 14,
     lineHeight: 20,
   },
   unreadBadge: {
-    minWidth: 24,
-    height: 24,
-    borderRadius: 12,
+    minWidth: 28,
+    height: 28,
+    borderRadius: 14,
     backgroundColor: '#007aff',
     justifyContent: 'center',
     alignItems: 'center',
-    marginLeft: 10,
-    paddingHorizontal: 7,
+    marginLeft: 12,
+    paddingHorizontal: 8,
   },
   unreadText: {
-    color: '#fff',
-    fontSize: 12,
+    color: '#ffffff',
+    fontSize: 13,
     fontWeight: '700',
   },
 });

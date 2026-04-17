@@ -8,6 +8,7 @@ import {
 } from 'firebase/firestore';
 
 import { db } from './firebaseConfig';
+import { updateChatActivity } from './chats';
 
 function getMessagesCollection(chatId) {
   if (!chatId) {
@@ -37,6 +38,8 @@ export async function sendEncryptedMessage({
     senderId,
     timestamp: serverTimestamp(),
   });
+
+  await updateChatActivity(chatId, senderId);
 
   return messageRef.id;
 }

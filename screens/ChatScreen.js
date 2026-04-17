@@ -15,6 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useChatContext } from '../context/ChatContext';
 import { auth } from '../services/firebaseConfig';
+import { markChatAsRead } from '../services/chats';
 import {
   sendEncryptedMessage,
   subscribeToChatMessages,
@@ -109,6 +110,9 @@ export default function ChatScreen({ route }) {
 
               setMessages(decryptedMessages);
               setScreenError('');
+              if (currentUser?.uid) {
+                await markChatAsRead(chatId, currentUser.uid);
+              }
 
               const latestMessage = decryptedMessages[decryptedMessages.length - 1];
               if (latestMessage) {
