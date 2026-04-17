@@ -6,6 +6,15 @@ service cloud.firestore {
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }
 
+    match /pendingHandshakes/{chatId} {
+      allow create: if request.auth != null
+        && request.resource.data.initiatorId == request.auth.uid;
+      allow read: if request.auth != null;
+      allow update: if request.auth != null;
+      allow delete: if request.auth != null
+        && request.auth.uid == resource.data.initiatorId;
+    }
+
     match /chats/{chatId} {
       allow create: if request.auth != null
         && request.resource.data.participants is list

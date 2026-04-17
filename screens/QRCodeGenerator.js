@@ -11,10 +11,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import QRCode from 'react-native-qrcode-svg';
 
 import { useChatContext } from '../context/ChatContext';
-import { subscribeToChat } from '../services/chats';
+import { subscribeToPendingHandshake } from '../services/chats';
 
 export default function QRCodeGenerator({ navigation, route }) {
-  const { addScannedChat, createChatHandshake } = useChatContext();
+  const { createChatHandshake } = useChatContext();
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [isWaitingForScan, setIsWaitingForScan] = useState(true);
   const completionRef = useRef(false);
@@ -41,18 +41,14 @@ export default function QRCodeGenerator({ navigation, route }) {
       return () => null;
     }
 
-    const unsubscribe = subscribeToChat(
+    const unsubscribe = subscribeToPendingHandshake(
       currentChatId,
-      async (chat) => {
-        if (!chat) {
+      async (handshake) => {
+        if (!handshake) {
           return;
         }
 
-        const participantCount = Array.isArray(chat.participants)
-          ? chat.participants.length
-          : 0;
-
-        if (participantCount < 2 || completionRef.current) {
+        if (handshake.status !== 'completed' || completionRef.current) {
           return;
         }
 
@@ -60,7 +56,6 @@ export default function QRCodeGenerator({ navigation, route }) {
         setIsWaitingForScan(false);
 
         try {
-          await addScannedChat({ chatId: currentChatId, isInitiator: true });
           navigation.replace('Chat', { chatId: currentChatId });
         } catch (error) {
           completionRef.current = false;
@@ -77,7 +72,7 @@ export default function QRCodeGenerator({ navigation, route }) {
     );
 
     return unsubscribe;
-  }, [addScannedChat, currentChatId, navigation]);
+  }, [currentChatId, navigation]);
 
   const handleRegenerate = async () => {
     try {

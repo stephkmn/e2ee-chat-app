@@ -9,6 +9,7 @@ import {
   onSnapshot,
   orderBy,
   query,
+  runTransaction,
   serverTimestamp,
   setDoc,
   updateDoc,
@@ -32,6 +33,14 @@ function getChatDoc(chatId) {
   }
 
   return doc(db, 'chats', chatId);
+}
+
+function getPendingHandshakeDoc(chatId) {
+  if (!chatId) {
+    throw new Error('chatId is required');
+  }
+
+  return doc(db, 'pendingHandshakes', chatId);
 }
 
 function getUserChatPreferenceDoc(userId, chatId) {
@@ -136,6 +145,22 @@ export async function createChatMetadata({
   );
 }
 
+export async function createPendingHandshake({
+  chatId,
+  initiatorId,
+}) {
+  if (!initiatorId) {
+    throw new Error('initiatorId is required');
+  }
+
+  await setDoc(getPendingHandshakeDoc(chatId), {
+    initiatorId,
+    status: 'pending',
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  });
+}
+
 export async function joinChatMetadata({
   chatId,
   participantId,
@@ -167,6 +192,78 @@ export async function joinChatMetadata({
     updatedAt: serverTimestamp(),
     lastMessageAt: serverTimestamp(),
     lastMessagePreview: deleteField(),
+  });
+}
+
+export async function completePendingHandshake({
+  chatId,
+  participantId,
+}) {
+  if (!participantId) {
+    throw new Error('participantId is required');
+  }
+
+  return runTransaction(db, async (transaction) => {
+    const pendingHandshakeDoc = getPendingHandshakeDoc(chatId);
+    const chatDoc = getChatDoc(chatId);
+    const pendingHandshakeSnapshot = await transaction.get(pendingHandshakeDoc);
+
+    if (!pendingHandshakeSnapshot.exists()) {
+      throw new Error('This secure handshake is no longer available.');
+    }
+
+    const pendingHandshake = pendingHandshakeSnapshot.data() || {};
+    const initiatorId = pendingHandshake.initiatorId;
+
+    if (!initiatorId) {
+      throw new Error('This secure handshake is invalid.');
+    }
+
+    if (initiatorId === participantId) {
+      throw new Error('You cannot scan your own secure handshake.');
+    }
+
+    const chatSnapshot = await transaction.get(chatDoc);
+
+    if (!chatSnapshot.exists()) {
+      transaction.set(chatDoc, {
+        participants: [initiatorId, participantId],
+        unreadCounts: {
+          [initiatorId]: 0,
+          [participantId]: 0,
+        },
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+        name: buildDefaultChatName(chatId),
+      });
+    } else {
+      const chatData = chatSnapshot.data() || {};
+      const participants = Array.isArray(chatData.participants) ? chatData.participants : [];
+      const nextParticipants = participants.includes(participantId)
+        ? participants
+        : [...participants, participantId];
+
+      transaction.update(chatDoc, {
+        participants: nextParticipants,
+        [`unreadCounts.${participantId}`]: 0,
+        updatedAt: serverTimestamp(),
+        lastMessagePreview: deleteField(),
+      });
+    }
+
+    transaction.set(
+      pendingHandshakeDoc,
+      {
+        initiatorId,
+        scannerId: participantId,
+        status: 'completed',
+        completedAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      },
+      { merge: true }
+    );
+
+    return { initiatorId };
   });
 }
 
@@ -280,6 +377,24 @@ export function subscribeToChat(chatId, onChat, onError) {
   );
 }
 
+export function subscribeToPendingHandshake(chatId, onHandshake, onError) {
+  return onSnapshot(
+    getPendingHandshakeDoc(chatId),
+    (snapshot) => {
+      if (!snapshot.exists()) {
+        onHandshake(null);
+        return;
+      }
+
+      onHandshake({
+        id: snapshot.id,
+        ...snapshot.data(),
+      });
+    },
+    onError
+  );
+}
+
 export function subscribeToUserChatPreferences(userId, onPreferences, onError) {
   if (!userId) {
     throw new Error('userId is required');
@@ -333,4 +448,8 @@ export async function hideChatForUser(chatId, userId) {
 
 export async function deleteChatMetadata(chatId) {
   await deleteDoc(getChatDoc(chatId));
+}
+
+export async function deletePendingHandshake(chatId) {
+  await deleteDoc(getPendingHandshakeDoc(chatId));
 }

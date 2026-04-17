@@ -12,10 +12,10 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { deleteChatKey, saveChatKey } from '../utils/storage';
 import { auth } from '../services/firebaseConfig';
 import {
-  createChatMetadata,
-  deleteChatMetadata,
+  completePendingHandshake,
+  createPendingHandshake,
+  deletePendingHandshake,
   hideChatForUser,
-  joinChatMetadata,
   subscribeToUserChats,
   subscribeToUserChatPreferences,
   renameChatForUser,
@@ -182,9 +182,9 @@ export function ChatProvider({ children }) {
 
     try {
       await saveChatKey(chatId, sharedKey);
-      await createChatMetadata({
+      await createPendingHandshake({
         chatId,
-        participantId,
+        initiatorId: participantId,
       });
     } catch (error) {
       throw new Error(
@@ -194,7 +194,7 @@ export function ChatProvider({ children }) {
 
     if (replaceChatId) {
       await deleteChatKey(replaceChatId).catch(() => null);
-      await deleteChatMetadata(replaceChatId).catch(() => null);
+      await deletePendingHandshake(replaceChatId).catch(() => null);
     }
 
     return { chatId, sharedKey };
@@ -211,7 +211,7 @@ export function ChatProvider({ children }) {
       throw new Error('You must be logged in to join a secure chat.');
     }
 
-    await joinChatMetadata({
+    await completePendingHandshake({
       chatId,
       participantId,
     });
