@@ -68,7 +68,7 @@ function bytesToHex(bytes) {
   return Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('');
 }
 
-function generateSharedKey() {
+async function generateSharedKey() {
   return generateKey();
 }
 
@@ -175,7 +175,7 @@ export function ChatProvider({ children }) {
 
     try {
       chatId = await generateChatId();
-      sharedKey = generateSharedKey();
+      sharedKey = await generateSharedKey();
     } catch (error) {
       throw new Error(error.message || 'Unable to generate a secure handshake.');
     }
