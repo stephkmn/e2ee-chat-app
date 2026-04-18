@@ -200,7 +200,7 @@ export default function ChatScreen({ route }) {
     try {
       setIsSending(true);
 
-      const { ciphertext, nonce } = encryptMessage(plainTextMessage, chatKey);
+      const { ciphertext, nonce } = await encryptMessage(plainTextMessage, chatKey);
 
       await sendEncryptedMessage({
         chatId,

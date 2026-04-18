@@ -170,9 +170,20 @@ export async function joinChatMetadata({
   }
 
   const chatDoc = getChatDoc(chatId);
-  const existingChat = await getDoc(chatDoc);
 
-  if (!existingChat.exists()) {
+  try {
+    await updateDoc(chatDoc, {
+      participants: arrayUnion(participantId),
+      [`unreadCounts.${participantId}`]: 0,
+      updatedAt: serverTimestamp(),
+      lastMessageAt: serverTimestamp(),
+      lastMessagePreview: deleteField(),
+    });
+  } catch (error) {
+    if (error.code !== 'not-found') {
+      throw error;
+    }
+
     await setDoc(chatDoc, {
       participants: [participantId],
       unreadCounts: {
@@ -183,16 +194,7 @@ export async function joinChatMetadata({
       lastMessageAt: serverTimestamp(),
       name: buildDefaultChatName(chatId),
     });
-    return;
   }
-
-  await updateDoc(chatDoc, {
-    participants: arrayUnion(participantId),
-    [`unreadCounts.${participantId}`]: 0,
-    updatedAt: serverTimestamp(),
-    lastMessageAt: serverTimestamp(),
-    lastMessagePreview: deleteField(),
-  });
 }
 
 export async function completePendingHandshake({
@@ -330,7 +332,7 @@ export function subscribeToUserChats(userId, onChats, onError) {
         scrubLegacyPreview(snapshot);
         onChats(
           sortChatsByRecent(snapshot.docs.map((docSnapshot) => mapChatDocument(docSnapshot, userId))).filter(
-            (chat) => !chat.hiddenFor.includes(userId)
+            (chat) => !chat.hiddenFor.includes(userId) && chat.participants.length >= 2
           )
         );
       },
@@ -344,7 +346,7 @@ export function subscribeToUserChats(userId, onChats, onError) {
       onChats(
         snapshot.docs
           .map((docSnapshot) => mapChatDocument(docSnapshot, userId))
-          .filter((chat) => !chat.hiddenFor.includes(userId))
+          .filter((chat) => !chat.hiddenFor.includes(userId) && chat.participants.length >= 2)
       );
     },
     (error) => {
