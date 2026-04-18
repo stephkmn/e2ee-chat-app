@@ -12,7 +12,6 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { deleteChatKey, saveChatKey } from '../utils/storage';
 import { auth } from '../services/firebaseConfig';
 import {
-  createChatMetadata,
   deleteChatMetadata,
   hideChatForUser,
   joinChatMetadata,
@@ -182,10 +181,6 @@ export function ChatProvider({ children }) {
 
     try {
       await saveChatKey(chatId, sharedKey);
-      await createChatMetadata({
-        chatId,
-        participantId,
-      });
     } catch (error) {
       throw new Error(
         error.message || 'Unable to create a secure chat on this device.'

@@ -52,7 +52,7 @@ export default function QRCodeGenerator({ navigation, route }) {
           ? chat.participants.length
           : 0;
 
-        if (participantCount < 2 || completionRef.current) {
+        if (participantCount < 1 || completionRef.current) {
           return;
         }
 

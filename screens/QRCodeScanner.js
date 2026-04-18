@@ -71,6 +71,7 @@ export default function QRCodeScanner({ navigation }) {
       });
     } catch (error) {
       setErrorMessage(ERROR_MESSAGE);
+    } finally {
       setIsProcessingScan(false);
     }
   };
