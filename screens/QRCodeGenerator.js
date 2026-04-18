@@ -91,6 +91,13 @@ export default function QRCodeGenerator({ navigation, route }) {
     };
   }, [addScannedChat, currentChatId]);
 
+  useEffect(() => {
+    if (!isWaitingForScan && currentChatId) {
+      navigation.replace('Chat', { chatId: currentChatId });
+    }
+  }, [isWaitingForScan, currentChatId, navigation]);
+
+
   const handleRegenerate = async () => {
     try {
       setIsRegenerating(true);
@@ -109,14 +116,6 @@ export default function QRCodeGenerator({ navigation, route }) {
 
   const handleBackToChats = () => {
     navigation.navigate('Chats');
-  };
-
-  const handleOpenChat = () => {
-    if (!currentChatId || isWaitingForScan) {
-      return;
-    }
-
-    navigation.replace('Chat', { chatId: currentChatId });
   };
 
   return (
@@ -168,14 +167,11 @@ export default function QRCodeGenerator({ navigation, route }) {
             </Text>
           </TouchableOpacity>
         </View>
-
-        {!isWaitingForScan ? (
-          handleOpenChat()
-        ) : null}
       </View>
     </SafeAreaView>
   );
 }
+
 
 const styles = StyleSheet.create({
   container: {
