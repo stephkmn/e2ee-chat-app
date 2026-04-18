@@ -170,13 +170,7 @@ export default function QRCodeGenerator({ navigation, route }) {
         </View>
 
         {!isWaitingForScan ? (
-          <TouchableOpacity
-            style={[styles.button, styles.openChatButton]}
-            onPress={handleOpenChat}
-            activeOpacity={0.85}
-          >
-            <Text style={styles.primaryButtonText}>Open Chat</Text>
-          </TouchableOpacity>
+          handleOpenChat()
         ) : null}
       </View>
     </SafeAreaView>
