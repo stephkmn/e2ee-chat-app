@@ -41,10 +41,12 @@ export default function QRCodeGenerator({ navigation, route }) {
       return () => null;
     }
 
+    let isActive = true;
+
     const unsubscribe = subscribeToChat(
       currentChatId,
       async (chat) => {
-        if (!chat) {
+        if (!chat || !isActive) {
           return;
         }
 
@@ -52,16 +54,14 @@ export default function QRCodeGenerator({ navigation, route }) {
           ? chat.participants.length
           : 0;
 
-        if (participantCount < 1 || completionRef.current) {
+        if (participantCount < 2 || completionRef.current) {
           return;
         }
 
         completionRef.current = true;
-        setIsWaitingForScan(false);
-
         try {
           await addScannedChat({ chatId: currentChatId, isInitiator: true });
-          navigation.replace('Chat', { chatId: currentChatId });
+          setIsWaitingForScan(false);
         } catch (error) {
           completionRef.current = false;
           setIsWaitingForScan(true);
@@ -71,13 +71,25 @@ export default function QRCodeGenerator({ navigation, route }) {
           );
         }
       },
-      () => {
-        setIsWaitingForScan(false);
+      (error) => {
+        if (!isActive) {
+          return;
+        }
+
+        completionRef.current = false;
+        setIsWaitingForScan(true);
+        Alert.alert(
+          'Unable to monitor scan',
+          error?.message || 'Please try again to finish setting up this secure chat.'
+        );
       }
     );
 
-    return unsubscribe;
-  }, [addScannedChat, currentChatId, navigation]);
+    return () => {
+      isActive = false;
+      unsubscribe();
+    };
+  }, [addScannedChat, currentChatId]);
 
   const handleRegenerate = async () => {
     try {
@@ -99,6 +111,14 @@ export default function QRCodeGenerator({ navigation, route }) {
     navigation.navigate('Chats');
   };
 
+  const handleOpenChat = () => {
+    if (!currentChatId || isWaitingForScan) {
+      return;
+    }
+
+    navigation.replace('Chat', { chatId: currentChatId });
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.card}>
@@ -114,7 +134,7 @@ export default function QRCodeGenerator({ navigation, route }) {
               <Text style={styles.statusText}>Waiting for scan to complete...</Text>
             </>
           ) : (
-            <Text style={styles.statusText}>Opening secure chat...</Text>
+            <Text style={styles.statusText}>Secure chat is ready to open.</Text>
           )}
         </View>
 
@@ -148,6 +168,16 @@ export default function QRCodeGenerator({ navigation, route }) {
             </Text>
           </TouchableOpacity>
         </View>
+
+        {!isWaitingForScan ? (
+          <TouchableOpacity
+            style={[styles.button, styles.openChatButton]}
+            onPress={handleOpenChat}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.primaryButtonText}>Open Chat</Text>
+          </TouchableOpacity>
+        ) : null}
       </View>
     </SafeAreaView>
   );
@@ -223,6 +253,11 @@ const styles = StyleSheet.create({
     width: '100%',
     flexDirection: 'row',
     marginTop: 24,
+  },
+  openChatButton: {
+    width: '100%',
+    marginTop: 12,
+    backgroundColor: '#bf1dd8',
   },
   button: {
     flex: 1,

@@ -235,7 +235,7 @@ export function subscribeToUserChats(userId, onChats, onError) {
         scrubLegacyPreview(snapshot);
         onChats(
           sortChatsByRecent(snapshot.docs.map((docSnapshot) => mapChatDocument(docSnapshot, userId))).filter(
-            (chat) => !chat.hiddenFor.includes(userId)
+            (chat) => !chat.hiddenFor.includes(userId) && chat.participants.length >= 2
           )
         );
       },
@@ -249,7 +249,7 @@ export function subscribeToUserChats(userId, onChats, onError) {
       onChats(
         snapshot.docs
           .map((docSnapshot) => mapChatDocument(docSnapshot, userId))
-          .filter((chat) => !chat.hiddenFor.includes(userId))
+          .filter((chat) => !chat.hiddenFor.includes(userId) && chat.participants.length >= 2)
       );
     },
     (error) => {

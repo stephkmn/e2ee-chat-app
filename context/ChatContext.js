@@ -12,6 +12,7 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { deleteChatKey, saveChatKey } from '../utils/storage';
 import { auth } from '../services/firebaseConfig';
 import {
+  createChatMetadata,
   deleteChatMetadata,
   hideChatForUser,
   joinChatMetadata,
@@ -163,7 +164,7 @@ export function ChatProvider({ children }) {
     return unsubscribePreferences;
   }, [currentUserId]);
 
-  const createChatHandshake = async (replaceChatId) => {
+  const createChatHandshake = useCallback(async (replaceChatId) => {
     let chatId;
     let sharedKey;
     const participantId = auth.currentUser?.uid;
@@ -181,6 +182,7 @@ export function ChatProvider({ children }) {
 
     try {
       await saveChatKey(chatId, sharedKey);
+      await createChatMetadata({ chatId, participantId });
     } catch (error) {
       throw new Error(
         error.message || 'Unable to create a secure chat on this device.'
@@ -193,9 +195,9 @@ export function ChatProvider({ children }) {
     }
 
     return { chatId, sharedKey };
-  };
+  }, []);
 
-  const addScannedChat = async ({ chatId, isInitiator = false }) => {
+  const addScannedChat = useCallback(async ({ chatId, isInitiator = false }) => {
     if (!chatId) {
       throw new Error('chatId is required');
     }
@@ -221,9 +223,12 @@ export function ChatProvider({ children }) {
     );
 
     return chatId;
-  };
+  }, [upsertChat]);
 
-  const getChatById = (chatId) => chats.find((chat) => chat.id === chatId) || null;
+  const getChatById = useCallback(
+    (chatId) => chats.find((chat) => chat.id === chatId) || null,
+    [chats]
+  );
 
   const hideChat = useCallback(
     async (chatId) => {
@@ -311,7 +316,17 @@ export function ChatProvider({ children }) {
       renameChat,
       updateChatPreview,
     }),
-    [chats, isChatsLoading, chatError, hideChat, renameChat, updateChatPreview]
+    [
+      chats,
+      isChatsLoading,
+      chatError,
+      createChatHandshake,
+      addScannedChat,
+      getChatById,
+      hideChat,
+      renameChat,
+      updateChatPreview,
+    ]
   );
 
   return <ChatContext.Provider value={value}>{children}</ChatContext.Provider>;
