@@ -1,4 +1,4 @@
-# e2ee chat app
+# E2EE Chat App
 
 A mobile messaging app where every message is encrypted on the sender's device before it ever touches the network. The backend stores only ciphertext — even a full database leak would not expose message contents.
 
