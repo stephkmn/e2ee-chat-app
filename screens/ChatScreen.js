@@ -1,8 +1,9 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
   FlatList,
+  Keyboard,
   KeyboardAvoidingView,
   Platform,
   StyleSheet,
@@ -46,7 +47,23 @@ export default function ChatScreen({ route }) {
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [isDecrypting, setIsDecrypting] = useState(false);
   const [isSending, setIsSending] = useState(false);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
   const [screenError, setScreenError] = useState('');
+
+  useEffect(() => {
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+
+    const show = Keyboard.addListener(showEvent, (e) => {
+      setKeyboardHeight(e.endCoordinates.height - 20);
+    });
+    const hide = Keyboard.addListener(hideEvent, () => setKeyboardHeight(0));
+
+    return () => {
+      show.remove();
+      hide.remove();
+    };
+  }, []);
 
   useEffect(() => {
     let isMounted = true;
@@ -167,7 +184,7 @@ export default function ChatScreen({ route }) {
 
   const sortedMessages = useMemo(
     () =>
-      [...messages].sort((left, right) => {
+      [...messages].sort((right, left) => {
         const leftTime = left.timestamp?.seconds ?? 0;
         const rightTime = right.timestamp?.seconds ?? 0;
         return leftTime - rightTime;
@@ -258,12 +275,11 @@ export default function ChatScreen({ route }) {
     );
   };
 
+  const listRef = useRef(null)
+
   return (
-    <SafeAreaView style={styles.container} edges={['left', 'right', 'bottom']}>
-      <KeyboardAvoidingView
-        style={styles.keyboardArea}
-        behavior="padding"
-      >
+    <View style={[styles.keyboardArea, { paddingBottom: keyboardHeight }]}>
+      <SafeAreaView style={styles.container} edges={['left', 'right', 'bottom']}>
         <View style={styles.header}>
           <Text style={styles.title}>{chat?.name || 'Secure Chat'}</Text>
           <Text style={styles.subtitle}>{chatId || 'No chat selected'}</Text>
@@ -292,6 +308,10 @@ export default function ChatScreen({ route }) {
             data={sortedMessages}
             keyExtractor={(item) => item.id}
             renderItem={renderMessage}
+            inverted
+            ref={listRef}
+            keyboardDismissMode="on-drag"
+            keyboardShouldPersistTaps="handled"
             contentContainerStyle={styles.messageList}
             showsVerticalScrollIndicator={false}
             ListEmptyComponent={
@@ -302,6 +322,8 @@ export default function ChatScreen({ route }) {
                 </Text>
               </View>
             }
+            onContentSizeChange={() => 
+              listRef.current?.scrollToEnd({ animated: false })}
           />
         )}
 
@@ -314,7 +336,6 @@ export default function ChatScreen({ route }) {
             onChangeText={setDraftMessage}
             multiline
             textAlignVertical="top"
-            editable={!isSending}
           />
           <TouchableOpacity
             style={[
@@ -330,8 +351,8 @@ export default function ChatScreen({ route }) {
             </Text>
           </TouchableOpacity>
         </View>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+      </SafeAreaView>
+    </View>
   );
 }
 
