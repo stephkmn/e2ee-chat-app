@@ -26,11 +26,11 @@ export default function ChatListScreen({ navigation }) {
   } = useChatContext();
   const containerRef = useRef(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [deleteMenu, setDeleteMenu] = useState(null);
+  const [optionsMenu, setDeleteMenu] = useState(null);
   const [editingChatId, setEditingChatId] = useState(null);
   const [editingName, setEditingName] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
-  const deleteMenuAnimation = useRef(new Animated.Value(0)).current;
+  const optionsMenuAnimation = useRef(new Animated.Value(0)).current;
 
   const filteredChats = chats.filter((chat) =>
     chat.name.toLowerCase().includes(searchQuery.trim().toLowerCase())
@@ -64,7 +64,7 @@ export default function ChatListScreen({ navigation }) {
     setIsMenuOpen(false);
     setDeleteMenu(null);
     handleRenameCancel();
-    deleteMenuAnimation.setValue(0);
+    optionsMenuAnimation.setValue(0);
   };
 
   const openChat = (chatId) => {
@@ -81,7 +81,7 @@ export default function ChatListScreen({ navigation }) {
     }
 
     setIsMenuOpen(false);
-    deleteMenuAnimation.setValue(0);
+    optionsMenuAnimation.setValue(0);
 
     const pressX = event?.nativeEvent?.pageX ?? 0;
     const pressY = event?.nativeEvent?.pageY ?? 0;
@@ -103,7 +103,7 @@ export default function ChatListScreen({ navigation }) {
         y: localPressY + 10,
       });
 
-      Animated.timing(deleteMenuAnimation, {
+      Animated.timing(optionsMenuAnimation, {
         toValue: 1,
         duration: 160,
         easing: Easing.out(Easing.ease),
@@ -113,12 +113,12 @@ export default function ChatListScreen({ navigation }) {
   };
 
   const handleDeleteChat = async () => {
-    if (!deleteMenu?.chatId) {
+    if (!optionsMenu?.chatId) {
       return;
     }
 
     try {
-      await hideChat(deleteMenu.chatId);
+      await hideChat(optionsMenu.chatId);
       closeOverlays();
     } catch (error) {
       Alert.alert(
@@ -129,14 +129,14 @@ export default function ChatListScreen({ navigation }) {
   };
 
   const handleRenameMode = () => {
-    if (!deleteMenu) {
+    if (!optionsMenu) {
       return;
     }
 
-    setEditingChatId(deleteMenu.chatId);
-    setEditingName(deleteMenu.chatName);
+    setEditingChatId(optionsMenu.chatId);
+    setEditingName(optionsMenu.chatName);
     setDeleteMenu(null);
-    deleteMenuAnimation.setValue(0);
+    optionsMenuAnimation.setValue(0);
   };
 
   const handleRenameSubmit = async () => {
@@ -200,7 +200,7 @@ export default function ChatListScreen({ navigation }) {
   return (
     <SafeAreaView style={styles.container} edges={['left', 'right', 'bottom']}>
       <View ref={containerRef} style={styles.content}>
-        {isMenuOpen || deleteMenu || editingChatId ? (
+        {isMenuOpen || optionsMenu || editingChatId ? (
           <Pressable
             style={styles.backdrop}
             onPress={editingChatId ? handleRenameCancel : closeOverlays}
@@ -227,23 +227,23 @@ export default function ChatListScreen({ navigation }) {
           </View>
         ) : null}
 
-        {deleteMenu ? (
+        {optionsMenu ? (
           <Animated.View
             style={[
-              styles.deleteMenu,
+              styles.optionsMenu,
               {
-                top: deleteMenu.y,
-                left: deleteMenu.x,
-                opacity: deleteMenuAnimation,
+                top: optionsMenu.y,
+                left: optionsMenu.x,
+                opacity: optionsMenuAnimation,
                 transform: [
                   {
-                    translateY: deleteMenuAnimation.interpolate({
+                    translateY: optionsMenuAnimation.interpolate({
                       inputRange: [0, 1],
                       outputRange: [-12, 0],
                     }),
                   },
                   {
-                    scaleY: deleteMenuAnimation.interpolate({
+                    scaleY: optionsMenuAnimation.interpolate({
                       inputRange: [0, 1],
                       outputRange: [0.88, 1],
                     }),
@@ -382,7 +382,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '600',
   },
-  deleteMenu: {
+  optionsMenu: {
     position: 'absolute',
     width: 110,
     backgroundColor: '#ffffff',

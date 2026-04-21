@@ -37,7 +37,7 @@ function formatMessageTimestamp(timestamp) {
 
 export default function ChatScreen({ route }) {
   const { chatId } = route.params || {};
-  const { getChatById, updateChatPreview } = useChatContext();
+  const { getChatById, updateChatPreview, renameChat } = useChatContext();
   const chat = chatId ? getChatById(chatId) : null;
   const currentUser = auth.currentUser;
 
@@ -49,6 +49,8 @@ export default function ChatScreen({ route }) {
   const [isSending, setIsSending] = useState(false);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const [screenError, setScreenError] = useState('');
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [editingName, setEditingName] = useState('');
 
   useEffect(() => {
     const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
@@ -192,6 +194,35 @@ export default function ChatScreen({ route }) {
     [messages]
   );
 
+  const handleStartRename = () => {
+    if (!chatId) {
+      return;
+    }
+    setEditingName(chat?.name || '');
+    setIsEditingName(true);
+  };
+
+  const handleRenameCancel = () => {
+    setIsEditingName(false);
+    setEditingName('');
+  };
+
+  const handleRenameSubmit = async () => {
+    if (!isEditingName) {
+      return;
+    }
+
+    try {
+      await renameChat(chatId, editingName);
+      handleRenameCancel();
+    } catch (error) {
+      Alert.alert(
+        'Unable to rename chat',
+        error?.message || 'Please try again to update the chat name.'
+      );
+    }
+  };
+
   const handleSendMessage = async () => {
     const plainTextMessage = draftMessage.trim();
 
@@ -281,7 +312,28 @@ export default function ChatScreen({ route }) {
     <View style={[styles.keyboardArea, { paddingBottom: keyboardHeight }]}>
       <SafeAreaView style={styles.container} edges={['left', 'right', 'bottom']}>
         <View style={styles.header}>
-          <Text style={styles.title}>{chat?.name || 'Secure Chat'}</Text>
+          {isEditingName ? (
+            <TextInput
+              style={styles.titleInput}
+              value={editingName}
+              onChangeText={setEditingName}
+              autoFocus
+              returnKeyType="done"
+              onSubmitEditing={handleRenameSubmit}
+              onBlur={handleRenameCancel}
+              blurOnSubmit={false}
+              placeholder="Chat name"
+              placeholderTextColor="#94a3b8"
+            />
+          ) : (
+            <TouchableOpacity
+              onLongPress={handleStartRename}
+              activeOpacity={0.6}
+              disabled={!chatId}
+            >
+              <Text style={styles.title}>{chat?.name || 'Secure Chat'}</Text>
+            </TouchableOpacity>
+          )}
           <Text style={styles.subtitle}>{chatId || 'No chat selected'}</Text>
         </View>
 
@@ -374,6 +426,12 @@ const styles = StyleSheet.create({
     fontSize: 28,
     fontWeight: '800',
     color: '#0f172a',
+  },
+  titleInput: {
+    fontSize: 28,
+    fontWeight: '800',
+    color: '#0f172a',
+    padding: 0,
   },
   subtitle: {
     marginTop: 4,
