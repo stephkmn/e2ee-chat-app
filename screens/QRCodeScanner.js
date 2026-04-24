@@ -60,7 +60,7 @@ export default function QRCodeScanner({ navigation }) {
       setErrorMessage('');
 
       await saveChatKey(chatId, sharedKey);
-      addScannedChat({ chatId });
+      await addScannedChat({ chatId });
 
       navigation.reset({
         index: 1,
@@ -71,6 +71,7 @@ export default function QRCodeScanner({ navigation }) {
       });
     } catch (error) {
       setErrorMessage(ERROR_MESSAGE);
+    } finally {
       setIsProcessingScan(false);
     }
   };

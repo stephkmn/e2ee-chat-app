@@ -55,9 +55,9 @@ function base64ToBytes(base64) {
     return out;
 }
 
-function randomBytes(length) {
-    if (Crypto && typeof Crypto.getRandomBytes === "function") {
-        return Crypto.getRandomBytes(length);
+async function randomBytes(length) {
+    if (Crypto && typeof Crypto.getRandomBytesAsync === "function") {
+        return Crypto.getRandomBytesAsync(length);
     }
 
     if (
@@ -91,11 +91,11 @@ function parseKeyMaterial(encoded, expectedBytes) {
 /**
  * Generates a random 256-bit (32-byte) AES key.
  * @param {{ encoding?: 'base64' | 'hex' }} [options]
- * @returns {string} Encoded key string.
+ * @returns {Promise<string>} Encoded key string.
  */
-function generateKey(options = {}) {
+async function generateKey(options = {}) {
     const { encoding = "base64" } = options;
-    const keyBytes = randomBytes(KEY_LENGTH_BYTES);
+    const keyBytes = await randomBytes(KEY_LENGTH_BYTES);
     return encoding === "hex" ? bytesToHex(keyBytes) : bytesToBase64(keyBytes);
 }
 
@@ -103,15 +103,15 @@ function generateKey(options = {}) {
  * Encrypts a message using AES-256-GCM.
  * @param {string} text Plaintext (non-empty).
  * @param {string} key AES key (base64 by default, or hex).
- * @returns {{ ciphertext: string, nonce: string }} ciphertext base64, nonce(base64 nonce).
+ * @returns {Promise<{ ciphertext: string, nonce: string }>} ciphertext base64, nonce(base64 nonce).
  */
-function encryptMessage(text, key) {
+async function encryptMessage(text, key) {
     if (typeof text !== "string" || text.length === 0) {
         throw new Error("Text must be a non-empty string");
     }
 
     const keyBytes = parseKeyMaterial(key, KEY_LENGTH_BYTES);
-    const nonceBytes = randomBytes(NONCE_LENGTH_BYTES);
+    const nonceBytes = await randomBytes(NONCE_LENGTH_BYTES);
 
     const aes = gcm(keyBytes, nonceBytes);
     const plaintextBytes = getTextEncoder().encode(text);

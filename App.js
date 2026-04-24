@@ -4,7 +4,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
 import { ChatProvider } from './context/ChatContext';
 import ChatListScreen from './screens/ChatListScreen';
-import ChatScreen from './screens/ChatScreen';
+import ChatRoomScreen from './screens/ChatRoomScreen';
 import LoginScreen from './screens/LoginScreen';
 import QRCodeGenerator from './screens/QRCodeGenerator';
 import QRCodeScanner from './screens/QRCodeScanner';
@@ -33,6 +33,11 @@ export default function App() {
             options={{ headerShown: true, title: 'Chats' }}
           />
           <Stack.Screen
+            name="Chat"
+            component={ChatRoomScreen}
+            options={{ title: 'Secure Chat' }}
+          />
+          <Stack.Screen
             name="QRCodeGenerator"
             component={QRCodeGenerator}
             options={{ title: 'Share Secure Handshake' }}
@@ -41,11 +46,6 @@ export default function App() {
             name="QRCodeScanner"
             component={QRCodeScanner}
             options={{ title: 'Scan Secure Handshake' }}
-          />
-          <Stack.Screen
-            name="Chat"
-            component={ChatScreen}
-            options={{ title: 'Secure Chat' }}
           />
         </Stack.Navigator>
       </NavigationContainer>
