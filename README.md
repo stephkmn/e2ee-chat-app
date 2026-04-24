@@ -1,187 +1,98 @@
-# 🔐 E2EE Chat App - End-to-End Encrypted Mobile Messaging
+# E2EE Chat App
 
-> **Project Goal:** Build a mobile chat application where messages are encrypted **before** leaving the device. The server stores only ciphertext and cannot read user messages.
->
-> **Course:** Introduction to Cybersecurity | **Timeline:** 9 Weeks | **Team:** 6 Students
+A mobile messaging app where every message is encrypted on the sender's device before it ever touches the network. The backend stores only ciphertext — even a full database leak would not expose message contents.
 
----
+## Highlights
 
-## ⚠️ CRITICAL RULES (READ FIRST)
+- **End-to-end encryption.** Messages are encrypted with a shared symmetric key before being written to Firestore. The server never sees plaintext.
+- **QR code key exchange.** Two devices establish a shared secret by scanning a QR code in person, so the key never traverses the network.
+- **Hardware-backed key storage.** Per-chat keys are kept in `expo-secure-store`, which is encrypted at rest on the device.
+- **Authenticated access.** Firebase Auth gates every read and write; Firestore security rules enforce per-chat access control.
+- **Real-time delivery.** Firestore listeners stream new ciphertext to each participant and decrypt it on arrival.
+- **Cross-platform.** Runs on iOS and Android from a single Expo/React Native codebase.
 
-1.  **🔒 NEVER Commit `.env` Files:** Your `.env` file contains Firebase secrets. If you commit this to GitHub, bots will steal them. It is in `.gitignore` for a reason.
-2.  **🛑 NEVER Push to `main`:** The `main` branch is protected. You must create a **Feature Branch** and open a **Pull Request**.
-3.  **🔑 NEVER Share Keys in Public Chat:** Firebase keys and Encryption keys should be shared via DM or secure channels only.
-4.  **🧪 TEST BEFORE PUSHING:** Ensure the app runs on your phone before pushing code. Don't break the build for everyone.
+## Overview
 
----
+The app is built with **React Native (Expo)** and uses **Firebase** for authentication, real-time message transport, and persistence. All cryptographic work happens on-device:
 
-## 📋 Prerequisites
+- **Encryption:** symmetric encryption via `@noble/ciphers` with a random nonce per message, so identical plaintexts always produce distinct ciphertexts.
+- **Key exchange:** the initiator generates a shared key and encodes it, along with the chat ID, into a QR code. The recipient scans the code with `expo-camera` and both devices persist the same key locally.
+- **Storage:** keys live in `expo-secure-store`; chat metadata and ciphertext live in Firestore.
+- **Sessions:** Firebase Auth handles account creation and login; React Navigation drives the screen flow (Login → Chats → QR handshake → Chat).
 
-Ensure you have these installed **before** starting:
+### Project structure
 
-1.  **[Node.js](https://nodejs.org/)** (Install the **LTS** version, e.g., v18 or v20).
-2.  **[Git](https://git-scm.com/)** (For version control).
-3.  **[VS Code](https://code.visualstudio.com/)** (Recommended editor).
-4.  **[Expo Go](https://expo.dev/go)** (Install this app on your **physical phone** from App Store/Play Store).
-5.  **[GitHub Account](https://github.com/)** (Make sure you accepted the repo invite).
+```
+App.js               # Navigation root
+screens/             # Login, Register, ChatList, Chat, QR generator, QR scanner
+services/            # Firebase config + auth helpers + chat/message APIs
+utils/               # Encryption primitives and secure-storage helpers
+context/             # Chat state provider shared across screens
+firestore.rules      # Server-side access control
+```
 
----
+### Known limitations
 
-## 🚀 Installation & Setup Guide
+This is an educational implementation. It intentionally uses a straightforward shared-secret model rather than a production protocol such as Signal's Double Ratchet, so it does not provide forward secrecy or post-compromise security. Message metadata (participants and timestamps) remains visible to the server.
 
-Follow these steps exactly to get the app running on your machine.
+## Authors
 
-### 1. Clone the Repository
-Open your terminal (Command Prompt, Terminal, or VS Code Terminal) and run:
+- Stephanie Noe
+- Nathan Fender
+- Jordan Flores
+- Aranzazu Romero
+- Joshua Trinh
+- Taehyeon Park
+
+## Running the app
+
+### Prerequisites
+
+- [Node.js](https://nodejs.org/) LTS (v18 or v20)
+- [Git](https://git-scm.com/)
+- [Expo Go](https://expo.dev/go) installed on a physical iOS or Android device
+- A Firebase project with Authentication (Email/Password) and Firestore enabled
+
+### 1. Clone and install
 
 ```bash
 git clone https://github.com/stephkmn/e2ee-chat-app.git
 cd e2ee-chat-app
-```
-### 2. Install Dependencies
-This downloads all the libraries needed for the app (React Native, Firebase, Crypto, etc.).
-
-```bash
 npm install
 ```
-### 3. Configure Environment Variables (🔒 Critical)
-We store Firebase API keys in a file called `.env`. This file is ignored by Git to prevent leaking secrets.
 
-#### 1) Copy the example file:
-```bash
-# Mac/Linux
-cp .env.example .env
+### 2. Configure Firebase
 
-# Windows (PowerShell)
-Copy-Item .env.example .env
+Create a `.env` file at the project root with the credentials from your Firebase web app config:
 
-# Windows (Command Prompt)
-copy .env.example .env
+```
+EXPO_PUBLIC_FIREBASE_API_KEY=...
+EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN=...
+EXPO_PUBLIC_FIREBASE_PROJECT_ID=...
+EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET=...
+EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=...
+EXPO_PUBLIC_FIREBASE_APP_ID=...
 ```
 
-#### 2) Get the keys
-The keys will be in the `#env-values` channel under `Project channels` in the Discord server when they're ready.
+Then deploy the security rules so unauthenticated clients can't read or write chats:
 
-#### 3) Paste the values
-- Open the newly created .env file in VS Code.
-- Paste the values next to the corresponding keys (do not delete the key names).
-- Save the file.
+```bash
+npx firebase deploy --only firestore:rules
+```
 
-### 4. Run the App
-Start the development server:
+### 3. Start the dev server
+
 ```bash
 npx expo start
 ```
-- A QR code will appear in your terminal and browser.
-- Open **Expo Go** on your phone.
-- **iOS**: Scan the QR code with your Camera app.
-- **Android**: Scan the QR code directly within the Expo Go app.
 
-## 🌳 Git Workflow (Collaboration Rules)
-To avoid breaking each other's code, follow these rules strictly:
+A QR code will appear in the terminal. Open Expo Go on your phone and scan it — the Camera app works on iOS, and Expo Go's built-in scanner works on Android. Both devices must be on the same Wi-Fi network as the machine running the dev server.
 
-### 1. Never Push to `main`
-The `main` branch is protected. If you try to push to it, GitHub will reject you.
+### 4. Try it with two devices
 
-### 2. Use feature branches
-Always create a new branch for your task:
-```bash
-# 1. Make sure you are on dev branch
-git checkout dev
-git pull origin dev
+1. Register an account on each device.
+2. On device A, start a new chat and share the generated QR code.
+3. On device B, scan the code to complete the handshake.
+4. Send a message — it is encrypted locally, stored as ciphertext in Firestore, and decrypted on the other device.
 
-# 2. Create your feature branch
-git checkout -b feature/your-task-name
-```
-
-### 3. Commit & Push
-```bash
-git add .
-git commit -m "feat: added login button"
-git push origin feature/your-task-name
-```
-
-### 4. Create a Pull Request (PR)
-1. Go to the GitHub repo page.
-2. Click **Pull Requests** → **New Pull Request**.
-3. Compare `feature/your-task-name` → `dev`.
-4. Assign a teammate to **Review your code**.
-5. Once approved, merge it.
-
-## 🔍 Security Validation Checklist
-- [ ] Verify messages in Firestore console show only ciphertext
-- [ ] Confirm `.env` is in `.gitignore` and not committed
-- [ ] Test that unauthenticated users cannot read/write Firestore
-- [ ] Validate IV is random per message (check logs/debug output)
-
-## 🛡 Security Architecture
-This is an **educational implementation of E2EE**. Here is how we ensure security:
-| Component | Implementation | Security Benefit |
-| :--- | :--- | :--- |
-| Encryption Algorithm | AES-256 (CBC Mode) | Industry-standard symmetric encryption. |
-| Initialization Vector | Random IV per message | Prevents pattern analysis (identical messages look different). |
-| Key Storage | expo-secure-store | Keys are encrypted at rest on the device hardware. |
-| Key Exchange | QR Code (Visual) | Keys never traverse the network during exchange. |
-| Database | Firebase Firestore | Server stores only ciphertext. Even if DB is leaked, messages are safe. |
-| Access Control | Firestore Security Rules | Only authenticated users can read/write data. |
-
-## ⚠️ Limitations (Educational Context)
-**Key Management**: Uses a simple shared secret model. Production apps (like Signal) use Double Ratchet protocol for forward secrecy.
-**Authentication**: Uses Firebase Auth. We trust Firebase for identity verification.
-**Metadata**: While message content is encrypted, metadata (who talked to whom and when) is visible to the server.
-
-## 📂 Project Structure
-```bash
-secure-chat-app/
-├── assets/              # Images and static files
-├── components/          # Reusable UI components (Buttons, Inputs)
-├── screens/             # App screens (Login, Chat, Register)
-├── services/            # Firebase configuration & Auth logic
-├── utils/               # Security utilities (Encryption, SecureStore)
-├── .env                 # ⚠️ IGNORED BY GIT (Contains Secrets)
-├── .env.example         # Template for environment variables
-├── .gitignore           # Git ignore rules
-└── App.js               # Entry point
-```
-
-## 📅 Project Timeline (9 Weeks)
-| Phase | Weeks | Focus | Deliverable |
-| :--- | :--- | :--- | :--- |
-| Setup | 1-2 | Repo setup, Firebase config, Learning React Native | "Hello World" on all phones |
-| Auth | 3-4 | Login/Register UI, Firebase Auth Integration | Can create account & login |
-| Core | 5-6 | Encryption Logic, Firestore Messaging, Secure Store | Can send encrypted message |
-| Exchange | 7 | QR Code Key Exchange Implementation | Two phones can chat securely |
-| Polish | 8 | Bug Fixes, Testing, Security Analysis | Stable Beta Version |
-| Submit | 9 | Final Report, Demo Video, Presentation | Submission |
-
-## 👥 Team Roles
-| Pair | Role | Focus Area | Members |
-| :--- | :--- | :--- | :--- |
-| Pair 1 | Auth & Nav | Login, Register, Navigation Stack | Joshua Trinh, Jordan Flores |
-| Pair 2 | Chat UI | Chat List, Chat Room, Styling | Nathan Fender, Taehyeon Park |
-| Pair 3 | Security & Infra | Encryption, Firebase Config, Rules | Aranzazu Romero, Stephanie Noe |
-
-## 🐛 Troubleshooting
-| Issue | Solution |
-| :--- | :--- |
-| npm install fails | Delete node_modules folder and package-lock.json, then run npm install again. |
-| App won't load on phone | Ensure your phone and computer are on the same Wi-Fi network. |
-| .env errors | Check that you copied .env.example to .env and pasted the keys correctly. No spaces around =. |
-| Git conflicts | Pull the latest changes (git pull origin dev) before starting work every day. |
-| Firebase Permission Denied | Check Firestore Security Rules in Firebase Console. |
-
-## ❓ Stuck?
-Post your error message in the `#coding-help` Discord channel. Include:
-1. What you were trying to do.
-2. The error message (screenshot).
-3. What you tried to fix it.
-
-## ✅ First Day Checklist
-- Installed Node.js & Git
-- Cloned the repo
-- Ran `npm install`
-- Created `.env` file with valid keys
-- Successfully ran `npx expo start`
-- Opened the app on your phone via Expo Go
-- Joined the Discord server
-- Read the Git Workflow section
+You can verify the end-to-end property by opening the Firestore console: the `messages` collection should contain only ciphertext and nonces, never plaintext.

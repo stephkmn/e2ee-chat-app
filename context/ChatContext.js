@@ -1,38 +1,41 @@
-import React, { createContext, useContext, useMemo, useState } from 'react';
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
 import * as Crypto from 'expo-crypto';
+import { onAuthStateChanged } from 'firebase/auth';
 
 import { deleteChatKey, saveChatKey } from '../utils/storage';
+import { auth } from '../services/firebaseConfig';
+import {
+  createChatMetadata,
+  deleteChatMetadata,
+  hideChatForUser,
+  joinChatMetadata,
+  subscribeToUserChats,
+  subscribeToUserChatPreferences,
+  renameChatForUser,
+} from '../services/chats';
 import { generateKey } from '../utils/encryption';
 
 const ChatContext = createContext(null);
 
-const initialChats = [
-  {
-    id: '1',
-    name: 'Mom',
-    lastMessage: 'Sounds good, have a good day!',
-    time: '9:12 AM',
-    unread: 2,
-    hasStoredKey: false,
-  },
-  {
-    id: '2',
-    name: 'Alex',
-    lastMessage: 'I sent the photo, check it out',
-    time: 'Yesterday',
-    unread: 0,
-    hasStoredKey: false,
-  },
-  {
-    id: '3',
-    name: 'Work Group',
-    lastMessage:
-      "I got class til 3:30, are you guys free after that? I'm free tomorrow morning if that works better for everyone",
-    time: 'Mon',
-    unread: 3,
-    hasStoredKey: false,
-  },
-];
+function normalizeChatLoadError(error) {
+  const message = error?.message || '';
+
+  if (
+    error?.code === 'failed-precondition' &&
+    message.toLowerCase().includes('query requires an index')
+  ) {
+    return 'Chat index is still being created in Firestore. Deploy the Firestore indexes for this project, then try again in a minute.';
+  }
+
+  return message || 'Unable to load chats right now.';
+}
 
 function formatTimestamp() {
   return new Date().toLocaleTimeString([], {
@@ -61,32 +64,11 @@ async function randomBytes(length) {
   }
 }
 
-function bytesToBase64(bytes) {
-  const chars =
-    'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
-  let output = '';
-
-  for (let index = 0; index < bytes.length; index += 3) {
-    const first = bytes[index];
-    const second = index + 1 < bytes.length ? bytes[index + 1] : 0;
-    const third = index + 2 < bytes.length ? bytes[index + 2] : 0;
-
-    const combined = (first << 16) | (second << 8) | third;
-
-    output += chars[(combined >> 18) & 63];
-    output += chars[(combined >> 12) & 63];
-    output += index + 1 < bytes.length ? chars[(combined >> 6) & 63] : '=';
-    output += index + 2 < bytes.length ? chars[combined & 63] : '=';
-  }
-
-  return output;
-}
-
 function bytesToHex(bytes) {
   return Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('');
 }
 
-function generateSharedKey() {
+async function generateSharedKey() {
   return generateKey();
 }
 
@@ -96,10 +78,23 @@ async function generateChatId() {
 }
 
 export function ChatProvider({ children }) {
-  const [chats, setChats] = useState(initialChats);
+  const [rawChats, setRawChats] = useState([]);
+  const [chatPreferences, setChatPreferences] = useState({});
+  const [isChatsLoading, setIsChatsLoading] = useState(true);
+  const [chatError, setChatError] = useState('');
+  const [currentUserId, setCurrentUserId] = useState(auth.currentUser?.uid || null);
 
-  const upsertChat = (chat) => {
-    setChats((currentChats) => {
+  const chats = useMemo(
+    () =>
+      rawChats.map((chat) => ({
+        ...chat,
+        name: chatPreferences[chat.id]?.customName || chat.name,
+      })),
+    [rawChats, chatPreferences]
+  );
+
+  const upsertChat = useCallback((chat) => {
+    setRawChats((currentChats) => {
       const existingIndex = currentChats.findIndex((item) => item.id === chat.id);
 
       if (existingIndex === -1) {
@@ -114,39 +109,109 @@ export function ChatProvider({ children }) {
 
       return updatedChats;
     });
-  };
+  }, []);
 
-  const createChatHandshake = async (replaceChatId) => {
+  useEffect(() => {
+    const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
+      setCurrentUserId(user?.uid || null);
+    });
+
+    return unsubscribeAuth;
+  }, []);
+
+  useEffect(() => {
+    if (!currentUserId) {
+      setRawChats([]);
+      setChatPreferences({});
+      setIsChatsLoading(false);
+      setChatError('');
+      return () => null;
+    }
+
+    setIsChatsLoading(true);
+    setChatError('');
+
+    const unsubscribeChats = subscribeToUserChats(
+      currentUserId,
+      (nextChats) => {
+        setRawChats(nextChats);
+        setChatError('');
+        setIsChatsLoading(false);
+      },
+      (error) => {
+        setChatError(normalizeChatLoadError(error));
+        setIsChatsLoading(false);
+      }
+    );
+
+    return unsubscribeChats;
+  }, [currentUserId]);
+
+  useEffect(() => {
+    if (!currentUserId) {
+      setChatPreferences({});
+      return () => null;
+    }
+
+    const unsubscribePreferences = subscribeToUserChatPreferences(
+      currentUserId,
+      (nextPreferences) => {
+        setChatPreferences(nextPreferences);
+      },
+      () => null
+    );
+
+    return unsubscribePreferences;
+  }, [currentUserId]);
+
+  const createChatHandshake = useCallback(async (replaceChatId) => {
     let chatId;
     let sharedKey;
+    const participantId = auth.currentUser?.uid;
+
+    if (!participantId) {
+      throw new Error('You must be logged in to create a secure chat.');
+    }
 
     try {
       chatId = await generateChatId();
-      sharedKey = generateSharedKey();
+      sharedKey = await generateSharedKey();
     } catch (error) {
       throw new Error(error.message || 'Unable to generate a secure handshake.');
     }
 
     try {
       await saveChatKey(chatId, sharedKey);
+      await createChatMetadata({ chatId, participantId });
     } catch (error) {
       throw new Error(
-        error.message || 'Unable to save the chat key securely on this device.'
+        error.message || 'Unable to create a secure chat on this device.'
       );
     }
 
     if (replaceChatId) {
       await deleteChatKey(replaceChatId).catch(() => null);
-      setChats((currentChats) => currentChats.filter((chat) => chat.id !== replaceChatId));
+      await deleteChatMetadata(replaceChatId).catch(() => null);
     }
 
     return { chatId, sharedKey };
-  };
+  }, []);
 
-  const addScannedChat = ({ chatId, isInitiator = false }) => {
+  const addScannedChat = useCallback(async ({ chatId, isInitiator = false }) => {
     if (!chatId) {
       throw new Error('chatId is required');
     }
+
+    const participantId = auth.currentUser?.uid;
+
+    if (!participantId) {
+      throw new Error('You must be logged in to join a secure chat.');
+    }
+
+    await joinChatMetadata({
+      chatId,
+      participantId,
+    });
 
     upsertChat(
       buildChatRecord(chatId, {
@@ -158,18 +223,110 @@ export function ChatProvider({ children }) {
     );
 
     return chatId;
-  };
+  }, [upsertChat]);
 
-  const getChatById = (chatId) => chats.find((chat) => chat.id === chatId) || null;
+  const getChatById = useCallback(
+    (chatId) => chats.find((chat) => chat.id === chatId) || null,
+    [chats]
+  );
+
+  const hideChat = useCallback(
+    async (chatId) => {
+      if (!chatId) {
+        throw new Error('chatId is required');
+      }
+
+      const userId = auth.currentUser?.uid;
+
+      if (!userId) {
+        throw new Error('You must be logged in to update your chat list.');
+      }
+
+      await hideChatForUser(chatId, userId);
+      setRawChats((currentChats) => currentChats.filter((chat) => chat.id !== chatId));
+    },
+    []
+  );
+
+  const renameChat = useCallback(async (chatId, customName) => {
+    if (!chatId) {
+      throw new Error('chatId is required');
+    }
+
+    const userId = auth.currentUser?.uid;
+
+    if (!userId) {
+      throw new Error('You must be logged in to rename a chat.');
+    }
+
+    const trimmedName = customName?.trim();
+
+    if (!trimmedName) {
+      throw new Error('Chat name cannot be empty.');
+    }
+
+    await renameChatForUser(chatId, userId, trimmedName);
+    setChatPreferences((currentPreferences) => ({
+      ...currentPreferences,
+      [chatId]: {
+        customName: trimmedName,
+      },
+    }));
+  }, []);
+
+  const updateChatPreview = useCallback((chatId, lastMessage, time = formatTimestamp()) => {
+    if (!chatId || !lastMessage) {
+      return;
+    }
+
+    setRawChats((currentChats) => {
+      const existingIndex = currentChats.findIndex((chat) => chat.id === chatId);
+      const existingChat = existingIndex >= 0 ? currentChats[existingIndex] : null;
+      const nextChat = buildChatRecord(chatId, {
+        ...(existingChat || {}),
+        lastMessage,
+        time,
+        unread: 0,
+        hasStoredKey: existingChat?.hasStoredKey ?? true,
+      });
+
+      if (existingIndex === -1) {
+        return [nextChat, ...currentChats];
+      }
+
+      const updatedChats = currentChats.filter((chat) => chat.id !== chatId);
+      updatedChats.unshift({
+        ...currentChats[existingIndex],
+        ...nextChat,
+      });
+
+      return updatedChats;
+    });
+  }, []);
 
   const value = useMemo(
     () => ({
       chats,
+      isChatsLoading,
+      chatError,
       createChatHandshake,
       addScannedChat,
       getChatById,
+      hideChat,
+      renameChat,
+      updateChatPreview,
     }),
-    [chats]
+    [
+      chats,
+      isChatsLoading,
+      chatError,
+      createChatHandshake,
+      addScannedChat,
+      getChatById,
+      hideChat,
+      renameChat,
+      updateChatPreview,
+    ]
   );
 
   return <ChatContext.Provider value={value}>{children}</ChatContext.Provider>;
