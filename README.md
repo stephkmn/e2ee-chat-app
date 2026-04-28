@@ -96,3 +96,7 @@ A QR code will appear in the terminal. Open Expo Go on your phone and scan it â€
 4. Send a message â€” it is encrypted locally, stored as ciphertext in Firestore, and decrypted on the other device.
 
 You can verify the end-to-end property by opening the Firestore console: the `messages` collection should contain only ciphertext and nonces, never plaintext.
+
+## Acknowledgements
+
+AES-256-GCM encryption is provided by [`@noble/ciphers`](https://github.com/paulmillr/noble-ciphers) by Paul Miller, used in [`utils/encryption.js`](utils/encryption.js) for all message encryption and authentication.
