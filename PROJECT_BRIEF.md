@@ -13,7 +13,7 @@ Build a mobile chat application where messages are encrypted **before** leaving 
 | **Firebase** | Auth & Database (Firestore) | The **Post Office** (delivers locked boxes) |
 | **expo-secure-store** | Secure Key Storage | The **Safe** (keys never leave the phone) |
 | **expo-crypto** | Random Key Generation | The **Key Maker** (creates secure random keys) |
-| **crypto-js** | AES Encryption/Decryption | The **Lock** (locks/unlocks message content) |
+| **@noble/ciphers** | AES Encryption/Decryption | The **Lock** (locks/unlocks message content) |
 | **expo-barcode-scanner** | QR Scanning | The **Scanner** (reads the key from partner) |
 | **react-native-qrcode-svg** | QR Display | The **Display** (shows key to partner) |
 
@@ -32,7 +32,7 @@ Build a mobile chat application where messages are encrypted **before** leaving 
 ### Step 2: Sending a Message (Locking)
 1. Alice types "Hello".
 2. Her app retrieves the **AES Secret Key** from secure storage.
-3. Her app uses `crypto-js` to **encrypt** the message with the key.
+3. Her app uses `@noble/ciphers` to **encrypt** the message with the key.
 4. The locked message (ciphertext) is sent to Firebase Firestore.
 5. **Firebase sees:** `U2FsdGVkX1+ABC123...` (Gibberish)
 6. **Firebase cannot read:** "Hello"
@@ -41,7 +41,7 @@ Build a mobile chat application where messages are encrypted **before** leaving 
 1. Bob's app listens for new messages in Firestore.
 2. His app downloads the locked message.
 3. His app retrieves the **AES Secret Key** from secure storage.
-4. His app uses `crypto-js` to **decrypt** the message.
+4. His app uses `@noble/ciphers` to **decrypt** the message.
 5. Bob sees: "Hello"
 
 ---
@@ -72,7 +72,7 @@ Build a mobile chat application where messages are encrypted **before** leaving 
 
 ### 🛡️ Security Team
 - Generate AES keys using `expo-crypto.getRandomBytesAsync(32)`.
-- Implement Encrypt/Decrypt utility functions using `crypto-js`.
+- Implement Encrypt/Decrypt utility functions using `@noble/ciphers`.
 - Ensure keys are stored in `expo-secure-store` (never in plain JS variables).
 - Audit code to ensure no keys are logged to the console.
 
@@ -104,7 +104,7 @@ Run these commands in your project root:
 
 ```bash
 # 1. Install Core Dependencies
-npm install firebase crypto-js
+npm install firebase @noble/ciphers
 
 # 2. Install Expo Modules (Use npx expo install for compatibility)
 npx expo install expo-secure-store expo-crypto expo-barcode-scanner
