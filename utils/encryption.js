@@ -14,6 +14,7 @@ function getTextDecoder() {
     throw new Error("TextDecoder is not available in this environment");
 }
 
+// Hex encoding helpers.
 function bytesToHex(bytes) {
     let out = "";
     for (let i = 0; i < bytes.length; i++) {
@@ -33,6 +34,7 @@ function hexToBytes(hex) {
     return out;
 }
 
+// Base64 encoding helpers, with browser/RN fallback when Buffer is unavailable.
 function bytesToBase64(bytes) {
     if (typeof Buffer !== "undefined") {
         return Buffer.from(bytes).toString("base64");
@@ -55,6 +57,7 @@ function base64ToBytes(base64) {
     return out;
 }
 
+// Cryptographically secure RNG; never falls back to Math.random.
 async function randomBytes(length) {
     if (Crypto && typeof Crypto.getRandomBytesAsync === "function") {
         return Crypto.getRandomBytesAsync(length);
@@ -73,6 +76,7 @@ async function randomBytes(length) {
     throw new Error("Secure random values are not available in this environment");
 }
 
+// Auto-detects hex vs base64, decodes, and validates byte length.
 function parseKeyMaterial(encoded, expectedBytes) {
     if (typeof encoded !== "string" || encoded.length === 0) {
         throw new Error("Key/Nonce must be a non-empty string");
@@ -110,6 +114,7 @@ async function encryptMessage(text, key) {
         throw new Error("Text must be a non-empty string");
     }
 
+    // Fresh random nonce per message so identical plaintexts produce different ciphertexts.
     const keyBytes = parseKeyMaterial(key, KEY_LENGTH_BYTES);
     const nonceBytes = await randomBytes(NONCE_LENGTH_BYTES);
 

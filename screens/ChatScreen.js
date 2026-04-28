@@ -24,6 +24,7 @@ import {
 import { decryptMessage, encryptMessage } from '../utils/encryption';
 import { getChatKey } from '../utils/storage';
 
+// Render a Firestore Timestamp as a clock string; "Sending..." while pending.
 function formatMessageTimestamp(timestamp) {
   if (!timestamp?.toDate) {
     return 'Sending...';
@@ -52,6 +53,7 @@ export default function ChatScreen({ route }) {
   const [isEditingName, setIsEditingName] = useState(false);
   const [editingName, setEditingName] = useState('');
 
+  // Track keyboard height so the composer floats above it.
   useEffect(() => {
     const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
     const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
@@ -67,6 +69,7 @@ export default function ChatScreen({ route }) {
     };
   }, []);
 
+  // Load the chat's AES key, then subscribe and decrypt messages as they arrive.
   useEffect(() => {
     let isMounted = true;
     let unsubscribe = () => null;
@@ -103,6 +106,7 @@ export default function ChatScreen({ route }) {
 
             setIsDecrypting(true);
 
+            // Decrypt every message locally; any GCM auth failure aborts the batch.
             try {
               const decryptedMessages = encryptedMessages.map((message) => {
                 const text = decryptMessage(
@@ -133,6 +137,7 @@ export default function ChatScreen({ route }) {
                 await markChatAsRead(chatId, currentUser.uid);
               }
 
+              // Push the latest plaintext into the chat list (in-memory only).
               const latestMessage = decryptedMessages[decryptedMessages.length - 1];
               if (latestMessage) {
                 updateChatPreview(
@@ -184,6 +189,7 @@ export default function ChatScreen({ route }) {
     };
   }, [chatId, updateChatPreview]);
 
+  // Oldest-first sort; FlatList's inverted prop puts the newest at the bottom.
   const sortedMessages = useMemo(
     () =>
       [...messages].sort((right, left) => {
@@ -223,6 +229,7 @@ export default function ChatScreen({ route }) {
     }
   };
 
+  // Encrypt the draft locally with AES-GCM, then write only ciphertext to Firestore.
   const handleSendMessage = async () => {
     const plainTextMessage = draftMessage.trim();
 
@@ -269,6 +276,7 @@ export default function ChatScreen({ route }) {
     }
   };
 
+  // Right-aligned blue bubbles for the current user, left-aligned white for others.
   const renderMessage = ({ item }) => {
     const isCurrentUser = item.senderId === currentUser?.uid;
 

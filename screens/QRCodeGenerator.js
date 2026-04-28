@@ -22,6 +22,7 @@ export default function QRCodeGenerator({ navigation, route }) {
   const currentChatId = route.params?.chatId;
   const currentSharedKey = route.params?.sharedKey;
 
+  // Encode chatId + AES key as JSON for the QR — read in person, never sent over the network.
   const qrPayload = useMemo(() => {
     if (!currentChatId || !currentSharedKey) {
       return '';
@@ -33,6 +34,7 @@ export default function QRCodeGenerator({ navigation, route }) {
     });
   }, [currentChatId, currentSharedKey]);
 
+  // Watch the chat doc — once a second participant joins, auto-open the chat.
   useEffect(() => {
     completionRef.current = false;
     setIsWaitingForScan(Boolean(currentChatId));
@@ -58,6 +60,7 @@ export default function QRCodeGenerator({ navigation, route }) {
           return;
         }
 
+        // Guard so we only finalize once even if the snapshot fires multiple times.
         completionRef.current = true;
         try {
           await addScannedChat({ chatId: currentChatId, isInitiator: true });
@@ -91,6 +94,7 @@ export default function QRCodeGenerator({ navigation, route }) {
     };
   }, [addScannedChat, currentChatId]);
 
+  // Once pairing is confirmed, replace this screen with the chat itself.
   useEffect(() => {
     if (!isWaitingForScan && currentChatId) {
       navigation.replace('Chat', { chatId: currentChatId });
@@ -98,6 +102,7 @@ export default function QRCodeGenerator({ navigation, route }) {
   }, [isWaitingForScan, currentChatId, navigation]);
 
 
+  // Mint a brand-new chatId/key pair if the user thinks the QR was leaked.
   const handleRegenerate = async () => {
     try {
       setIsRegenerating(true);

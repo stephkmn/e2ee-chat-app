@@ -18,6 +18,7 @@ function getMessagesCollection(chatId) {
   return collection(db, 'chats', chatId, 'messages');
 }
 
+// Write a pre-encrypted message to Firestore and update the parent chat's activity.
 export async function sendEncryptedMessage({
   chatId,
   senderId,
@@ -44,6 +45,7 @@ export async function sendEncryptedMessage({
   return messageRef.id;
 }
 
+// Real-time listener over a chat's messages, ordered oldest-first; decryption happens in the screen.
 export function subscribeToChatMessages(chatId, onMessages, onError) {
   const messagesQuery = query(
     getMessagesCollection(chatId),

@@ -13,6 +13,7 @@ import RegisterScreen from './screens/RegisterScreen';
 const Stack = createNativeStackNavigator();
 
 export default function App() {
+  // ChatProvider exposes chat state to every screen; navigator defines the six routes.
   return (
     <ChatProvider>
       <NavigationContainer>

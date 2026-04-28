@@ -32,10 +32,12 @@ export default function ChatListScreen({ navigation }) {
   const [searchQuery, setSearchQuery] = useState('');
   const optionsMenuAnimation = useRef(new Animated.Value(0)).current;
 
+  // Case-insensitive substring filter applied to the chat list.
   const filteredChats = chats.filter((chat) =>
     chat.name.toLowerCase().includes(searchQuery.trim().toLowerCase())
   );
 
+  // Mint a new handshake and send the user to the QR generator.
   const handleCreateChat = async () => {
     setIsMenuOpen(false);
 
@@ -75,6 +77,7 @@ export default function ChatListScreen({ navigation }) {
     navigation.navigate('Chat', { chatId });
   };
 
+  // Anchor the long-press context menu to the touch coords, clamped to viewport.
   const handleDeleteMenuOpen = (chat, event) => {
     if (editingChatId) {
       return;
@@ -112,6 +115,7 @@ export default function ChatListScreen({ navigation }) {
     });
   };
 
+  // Soft-delete the selected chat via the context's hideChat action.
   const handleDeleteChat = async () => {
     if (!optionsMenu?.chatId) {
       return;
@@ -128,6 +132,7 @@ export default function ChatListScreen({ navigation }) {
     }
   };
 
+  // Switch the row into inline rename mode.
   const handleRenameMode = () => {
     if (!optionsMenu) {
       return;
@@ -155,6 +160,7 @@ export default function ChatListScreen({ navigation }) {
     }
   };
 
+  // Single chat row: name (or rename input), time, encrypted preview, unread badge.
   const renderChatItem = ({ item }) => (
     <TouchableOpacity
       style={[styles.chatRow, editingChatId === item.id && styles.chatRowEditing]}

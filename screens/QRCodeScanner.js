@@ -16,6 +16,7 @@ export default function QRCodeScanner({ navigation }) {
   const [isProcessingScan, setIsProcessingScan] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
+  // Ask for camera access; surface a friendly error if denied.
   const requestPermission = async () => {
     try {
       setIsRequestingPermission(true);
@@ -39,6 +40,7 @@ export default function QRCodeScanner({ navigation }) {
     requestPermission();
   }, []);
 
+  // Parse the QR JSON, save the AES key locally, join the chat, then jump in.
   const processQrPayload = async (data) => {
     let parsedPayload;
 
@@ -62,6 +64,7 @@ export default function QRCodeScanner({ navigation }) {
       await saveChatKey(chatId, sharedKey);
       await addScannedChat({ chatId });
 
+      // Reset stack so Back from Chat goes to Chats, not the scanner.
       navigation.reset({
         index: 1,
         routes: [
@@ -76,6 +79,7 @@ export default function QRCodeScanner({ navigation }) {
     }
   };
 
+  // Live camera scan handler; guarded so a single QR can't fire twice.
   const handleBarcodeScanned = async ({ data }) => {
     if (isProcessingScan || !data) {
       return;
@@ -84,6 +88,7 @@ export default function QRCodeScanner({ navigation }) {
     await processQrPayload(data);
   };
 
+  // Fallback path: pick a saved image and decode the QR from it.
   const handleUploadPhoto = async () => {
     if (isProcessingScan) {
       return;

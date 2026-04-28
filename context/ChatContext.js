@@ -24,6 +24,7 @@ import { generateKey } from '../utils/encryption';
 
 const ChatContext = createContext(null);
 
+// Turn the cryptic "missing index" Firestore error into a friendly hint.
 function normalizeChatLoadError(error) {
   const message = error?.message || '';
 
@@ -44,6 +45,7 @@ function formatTimestamp() {
   });
 }
 
+// Build a default-shaped chat row for local-only state inserts.
 function buildChatRecord(chatId, overrides = {}) {
   return {
     id: chatId,
@@ -72,6 +74,7 @@ async function generateSharedKey() {
   return generateKey();
 }
 
+// Globally-unique chat id: timestamp plus 6 random bytes of hex.
 async function generateChatId() {
   const randomSuffix = bytesToHex(await randomBytes(6));
   return `chat-${Date.now()}-${randomSuffix}`;
@@ -84,6 +87,7 @@ export function ChatProvider({ children }) {
   const [chatError, setChatError] = useState('');
   const [currentUserId, setCurrentUserId] = useState(auth.currentUser?.uid || null);
 
+  // Merge raw chats with this user's custom names from preferences.
   const chats = useMemo(
     () =>
       rawChats.map((chat) => ({
@@ -93,6 +97,7 @@ export function ChatProvider({ children }) {
     [rawChats, chatPreferences]
   );
 
+  // Insert or merge a chat into the local list.
   const upsertChat = useCallback((chat) => {
     setRawChats((currentChats) => {
       const existingIndex = currentChats.findIndex((item) => item.id === chat.id);
@@ -111,6 +116,7 @@ export function ChatProvider({ children }) {
     });
   }, []);
 
+  // Track auth state so all subscriptions can react to login/logout.
   useEffect(() => {
     const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
       setCurrentUserId(user?.uid || null);
@@ -119,6 +125,7 @@ export function ChatProvider({ children }) {
     return unsubscribeAuth;
   }, []);
 
+  // Subscribe to this user's chat list; tear down on logout.
   useEffect(() => {
     if (!currentUserId) {
       setRawChats([]);
@@ -147,6 +154,7 @@ export function ChatProvider({ children }) {
     return unsubscribeChats;
   }, [currentUserId]);
 
+  // Subscribe to per-user chat preferences (custom names).
   useEffect(() => {
     if (!currentUserId) {
       setChatPreferences({});
@@ -164,6 +172,7 @@ export function ChatProvider({ children }) {
     return unsubscribePreferences;
   }, [currentUserId]);
 
+  // Initiator flow: mint a fresh chatId + AES key, store locally, register chat in Firestore.
   const createChatHandshake = useCallback(async (replaceChatId) => {
     let chatId;
     let sharedKey;
@@ -189,6 +198,7 @@ export function ChatProvider({ children }) {
       );
     }
 
+    // Clean up the previous handshake when regenerating.
     if (replaceChatId) {
       await deleteChatKey(replaceChatId).catch(() => null);
       await deleteChatMetadata(replaceChatId).catch(() => null);
@@ -197,6 +207,7 @@ export function ChatProvider({ children }) {
     return { chatId, sharedKey };
   }, []);
 
+  // Both sides call this once paired — joins the chat doc and inserts a local row.
   const addScannedChat = useCallback(async ({ chatId, isInitiator = false }) => {
     if (!chatId) {
       throw new Error('chatId is required');
@@ -230,6 +241,7 @@ export function ChatProvider({ children }) {
     [chats]
   );
 
+  // Soft-delete on the server, then drop the row locally for instant feedback.
   const hideChat = useCallback(
     async (chatId) => {
       if (!chatId) {
@@ -248,6 +260,7 @@ export function ChatProvider({ children }) {
     []
   );
 
+  // Save a custom chat name to this user's preferences with optimistic update.
   const renameChat = useCallback(async (chatId, customName) => {
     if (!chatId) {
       throw new Error('chatId is required');
@@ -274,6 +287,7 @@ export function ChatProvider({ children }) {
     }));
   }, []);
 
+  // Move the chat to the top with the latest decrypted preview — device RAM only, never persisted.
   const updateChatPreview = useCallback((chatId, lastMessage, time = formatTimestamp()) => {
     if (!chatId || !lastMessage) {
       return;

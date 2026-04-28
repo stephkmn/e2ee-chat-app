@@ -7,6 +7,7 @@ import {
 import { getFirestore } from 'firebase/firestore';
 import ReactNativeAsyncStorage from '@react-native-async-storage/async-storage';
 
+// Firebase credentials read from EXPO_PUBLIC_* env vars at build time.
 const firebaseConfig = {
   apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY,
   authDomain: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN,
@@ -16,6 +17,7 @@ const firebaseConfig = {
   appId: process.env.EXPO_PUBLIC_FIREBASE_IOS_APP_ID 
 };
 
+// Reuse the existing app on Fast Refresh to avoid double-init errors.
 const hasExistingApp = getApps().length > 0;
 const app = hasExistingApp ? getApp() : initializeApp(firebaseConfig);
 
@@ -26,4 +28,5 @@ export const auth = hasExistingApp
       persistence: getReactNativePersistence(ReactNativeAsyncStorage)
     });
 
+// Shared Firestore client for chats, messages, and user preferences.
 export const db = getFirestore(app);

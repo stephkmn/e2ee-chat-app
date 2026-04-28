@@ -17,6 +17,7 @@ import {
 
 import { db } from './firebaseConfig';
 
+// Detect the "missing composite index" error so we can fall back gracefully.
 function isMissingIndexError(error) {
   const message = error?.message || '';
 
@@ -46,6 +47,7 @@ function getUserChatPreferenceDoc(userId, chatId) {
   return doc(db, 'users', userId, 'chatPreferences', chatId);
 }
 
+// Default display name when no custom name is set.
 function buildDefaultChatName(chatId) {
   return `Secure Chat ${chatId.slice(-4)}`;
 }
@@ -61,6 +63,7 @@ function formatChatTime(timestamp) {
   });
 }
 
+// Convert a Firestore chat doc into the shape the UI consumes.
 function mapChatDocument(documentSnapshot, userId) {
   const data = documentSnapshot.data() || {};
   const hasMessages = Boolean(data.lastMessageAt);
@@ -70,6 +73,7 @@ function mapChatDocument(documentSnapshot, userId) {
   return {
     id: documentSnapshot.id,
     name: data.name || buildDefaultChatName(documentSnapshot.id),
+    // Hard-coded preview — server never sees plaintext.
     lastMessage: hasMessages
       ? 'Encrypted message'
       : 'Secure handshake completed.',
@@ -96,10 +100,12 @@ function getChatSortValue(chat) {
   return 0;
 }
 
+// Newest-first sort, used as fallback when the Firestore index isn't ready.
 function sortChatsByRecent(chats) {
   return [...chats].sort((left, right) => getChatSortValue(right) - getChatSortValue(left));
 }
 
+// Defensively strip leftover plaintext previews from older prototype docs.
 function scrubLegacyPreview(snapshot) {
   snapshot.docs.forEach((documentSnapshot) => {
     const data = documentSnapshot.data() || {};
@@ -112,6 +118,7 @@ function scrubLegacyPreview(snapshot) {
   });
 }
 
+// Initiator's first write — creates the chat doc with themself as sole participant.
 export async function createChatMetadata({
   chatId,
   participantId,
@@ -136,6 +143,7 @@ export async function createChatMetadata({
   );
 }
 
+// Joiner adds themself to the chat's participants array; recreates doc if missing.
 export async function joinChatMetadata({
   chatId,
   participantId,
@@ -172,6 +180,7 @@ export async function joinChatMetadata({
   }
 }
 
+// Bumps timestamps and increments unread for everyone except the sender on each new message.
 export async function updateChatActivity(chatId, senderId) {
   if (!senderId) {
     throw new Error('senderId is required');
@@ -200,6 +209,7 @@ export async function updateChatActivity(chatId, senderId) {
   });
 }
 
+// Reset this user's unread counter to zero for the chat.
 export async function markChatAsRead(chatId, userId) {
   if (!userId) {
     throw new Error('userId is required');
@@ -210,6 +220,7 @@ export async function markChatAsRead(chatId, userId) {
   });
 }
 
+// Real-time chat list for a user; falls back to client-side sort if the index is missing.
 export function subscribeToUserChats(userId, onChats, onError) {
   if (!userId) {
     throw new Error('userId is required');
@@ -267,6 +278,7 @@ export function subscribeToUserChats(userId, onChats, onError) {
   };
 }
 
+// Listen to a single chat doc — used to detect when the second participant joins.
 export function subscribeToChat(chatId, onChat, onError) {
   return onSnapshot(
     getChatDoc(chatId),
@@ -282,6 +294,7 @@ export function subscribeToChat(chatId, onChat, onError) {
   );
 }
 
+// Listen to per-user chat preferences (custom names) — local to this user.
 export function subscribeToUserChatPreferences(userId, onPreferences, onError) {
   if (!userId) {
     throw new Error('userId is required');
@@ -306,6 +319,7 @@ export function subscribeToUserChatPreferences(userId, onPreferences, onError) {
   );
 }
 
+// Save a custom chat name to this user's preferences only — not shared.
 export async function renameChatForUser(chatId, userId, customName) {
   const trimmedName = customName?.trim();
 
@@ -323,6 +337,7 @@ export async function renameChatForUser(chatId, userId, customName) {
   );
 }
 
+// Soft-delete: hide for this user; reappears if a new message arrives.
 export async function hideChatForUser(chatId, userId) {
   if (!userId) {
     throw new Error('userId is required');
@@ -333,6 +348,7 @@ export async function hideChatForUser(chatId, userId) {
   });
 }
 
+// Hard-delete the chat doc; used during handshake regeneration.
 export async function deleteChatMetadata(chatId) {
   await deleteDoc(getChatDoc(chatId));
 }
