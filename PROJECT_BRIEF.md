@@ -32,7 +32,7 @@ Build a mobile chat application where messages are encrypted **before** leaving 
 ### Step 2: Sending a Message (Locking)
 1. Alice types "Hello".
 2. Her app retrieves the **AES Secret Key** from secure storage.
-3. Her app uses `crypto-js` to **encrypt** the message with the key.
+3. Her app uses `@noble/ciphers` to **encrypt** the message with the key.
 4. The locked message (ciphertext) is sent to Firebase Firestore.
 5. **Firebase sees:** `U2FsdGVkX1+ABC123...` (Gibberish)
 6. **Firebase cannot read:** "Hello"
@@ -41,7 +41,7 @@ Build a mobile chat application where messages are encrypted **before** leaving 
 1. Bob's app listens for new messages in Firestore.
 2. His app downloads the locked message.
 3. His app retrieves the **AES Secret Key** from secure storage.
-4. His app uses `crypto-js` to **decrypt** the message.
+4. His app uses `@noble/ciphers` to **decrypt** the message.
 5. Bob sees: "Hello"
 
 ---
