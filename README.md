@@ -44,6 +44,13 @@ This is an educational implementation. It intentionally uses a straightforward s
 - Joshua Trinh
 - Taehyeon Park
 
+## Demo video (YouTube redirect)
+<p>
+  <a href="https://youtu.be/zJv4kbviCQg">
+    <img src="https://img.youtube.com/vi/zJv4kbviCQg/0.jpg" alt="E2EE Chat Demo" />
+  </a>
+</p>
+
 ## Running the app
 
 ### Prerequisites
